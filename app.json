@@ -2,6 +2,7 @@
   "expo": {
     "name": "Said The Whale",
     "slug": "said-the-whale-app",
+    "owner": "said-the-whale",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
@@ -43,7 +44,7 @@
     },
     "extra": {
       "eas": {
-        "projectId": "c9dc4c55-d4e1-4e8f-be3a-754c0a918e75"
+        "projectId": "c3d71088-e187-4c93-942a-ab7232a9ae17"
       }
     }
   }

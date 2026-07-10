@@ -1,13 +1,15 @@
 # Builds the iOS app on Expo's cloud (EAS) and submits it to TestFlight.
 #
-# Trigger: run manually from GitHub's "Actions" tab ("Run workflow"), or have
-# Claude Code trigger it for you. Once the first run is green we can also add an
-# automatic "on every push to main" trigger so updates flow with zero clicks.
+# Trigger it manually from the GitHub "Actions" tab ("Run workflow"), or have
+# Claude Code trigger it. The App Store Connect API key (stored in the repo
+# secrets below) lets EAS generate the iOS signing certificate itself and
+# submit the build to TestFlight without any interactive Apple login.
 #
-# Requires one repository secret (Settings -> Secrets and variables -> Actions):
-#   EXPO_TOKEN  -> a personal access token from expo.dev (lets this run log in to Expo)
-# and an App Store Connect API key stored with EAS (so signing + submission run
-# without any interactive Apple login). We wire both up together, once.
+# Required repository secrets (Settings -> Secrets and variables -> Actions):
+#   EXPO_TOKEN      Expo personal access token (logs in to EAS)
+#   ASC_API_KEY     Contents of the App Store Connect API key .p8 file
+#   ASC_KEY_ID      The API key's Key ID
+#   ASC_ISSUER_ID   The App Store Connect Issuer ID
 
 name: TestFlight (iOS)
 
@@ -41,5 +43,33 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Write App Store Connect API key to a file
+        env:
+          ASC_API_KEY: ${{ secrets.ASC_API_KEY }}
+        run: printf '%s' "$ASC_API_KEY" > "$RUNNER_TEMP/asc_api_key.p8"
+
+      - name: Add submit credentials to eas.json
+        env:
+          ASC_KEY_PATH: ${{ runner.temp }}/asc_api_key.p8
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+        run: |
+          node -e '
+            const fs = require("fs");
+            const j = JSON.parse(fs.readFileSync("eas.json", "utf8"));
+            j.submit = j.submit || {};
+            j.submit.production = j.submit.production || {};
+            j.submit.production.ios = {
+              ascApiKeyPath: process.env.ASC_KEY_PATH,
+              ascApiKeyId: process.env.ASC_KEY_ID,
+              ascApiKeyIssuerId: process.env.ASC_ISSUER_ID
+            };
+            fs.writeFileSync("eas.json", JSON.stringify(j, null, 2));
+          '
+
       - name: Build on EAS and submit to TestFlight
+        env:
+          EXPO_ASC_API_KEY_PATH: ${{ runner.temp }}/asc_api_key.p8
+          EXPO_ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          EXPO_ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
         run: eas build --platform ios --profile production --non-interactive --auto-submit

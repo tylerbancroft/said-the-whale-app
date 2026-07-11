@@ -11,7 +11,7 @@ type TabMeta = { name: string; label: string; icon: keyof typeof Ionicons.glyphM
 const TABS: TabMeta[] = [
   { name: 'index', label: 'Albums', icon: 'disc', iconOutline: 'disc-outline' },
   { name: 'chat', label: 'Chat', icon: 'water', iconOutline: 'water-outline' },
-  { name: 'tour', label: 'Tour', icon: 'bus', iconOutline: 'bus-outline' },
+  { name: 'tour', label: 'Live', icon: 'mic', iconOutline: 'mic-outline' },
   { name: 'news', label: 'News', icon: 'newspaper', iconOutline: 'newspaper-outline' },
 ];
 

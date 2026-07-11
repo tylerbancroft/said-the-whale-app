@@ -6,7 +6,8 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 
 import { AuthProvider, useAuth } from '@/context/AuthContext';
-import { PlayerProvider } from '@/context/PlayerContext';
+import { ArchivePlayerProvider } from '@/context/ArchivePlayerContext';
+import { PhotoProvider } from '@/context/PhotoContext';
 import { colors } from '@/theme/tokens';
 
 export { ErrorBoundary } from 'expo-router';
@@ -19,10 +20,12 @@ export default function RootLayout() {
   return (
     <SafeAreaProvider>
       <AuthProvider>
-        <PlayerProvider>
-          <StatusBar style="light" />
-          <RootNav />
-        </PlayerProvider>
+        <ArchivePlayerProvider>
+          <PhotoProvider>
+            <StatusBar style="dark" />
+            <RootNav />
+          </PhotoProvider>
+        </ArchivePlayerProvider>
       </AuthProvider>
     </SafeAreaProvider>
   );
@@ -68,6 +71,7 @@ function RootNav() {
     >
       <Stack.Screen name="(tabs)" />
       <Stack.Screen name="onboarding" />
+      <Stack.Screen name="player" options={{ animation: 'fade' }} />
     </Stack>
   );
 }

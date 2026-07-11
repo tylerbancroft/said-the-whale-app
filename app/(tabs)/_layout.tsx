@@ -2,6 +2,7 @@ import { Tabs } from 'expo-router';
 import { View, Pressable, Text, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { ArchiveMiniPlayer } from '@/components/archive/ArchiveMiniPlayer';
 import { archive, font } from '@/theme/archive';
 
 type TabMeta = { name: string; label: string; glyph: string };
@@ -16,7 +17,9 @@ const TABS: TabMeta[] = [
 function TabBar({ state, navigation }: any) {
   const insets = useSafeAreaInsets();
   return (
-    <View style={[styles.bar, { paddingBottom: Math.max(insets.bottom, 10) }]}>
+    <View style={styles.footer}>
+      <ArchiveMiniPlayer />
+      <View style={[styles.bar, { paddingBottom: Math.max(insets.bottom, 10) }]}>
       {state.routes.map((route: any, index: number) => {
         const meta = TABS.find((t) => t.name === route.name);
         if (!meta) return null;
@@ -35,7 +38,8 @@ function TabBar({ state, navigation }: any) {
             <View style={[styles.dot, { backgroundColor: focused ? archive.color.red : 'transparent' }]} />
           </Pressable>
         );
-      })}
+        })}
+      </View>
     </View>
   );
 }
@@ -52,6 +56,7 @@ export default function TabsLayout() {
 }
 
 const styles = StyleSheet.create({
+  footer: { backgroundColor: archive.color.cream },
   bar: {
     flexDirection: 'row',
     backgroundColor: archive.color.cream,

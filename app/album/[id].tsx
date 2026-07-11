@@ -1,151 +1,106 @@
-import { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, Pressable, ActivityIndicator, ScrollView } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
-import { Ionicons } from '@expo/vector-icons';
+import { View, Text, StyleSheet, Pressable, ScrollView } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { colors, spacing, radius, serif } from '@/theme/tokens';
-import { Catalog, CatalogAlbum, findAlbum } from '@/data/catalog';
-import { loadCatalog } from '@/services/catalog';
-import { usePlayer, PlayerTrack } from '@/context/PlayerContext';
-import { Tag } from '@/components/ui';
+import { AlbumArt } from '@/components/archive/AlbumArt';
+import { ALBUMS, lengthForTrack, useArchivePlayer } from '@/context/ArchivePlayerContext';
+import { archive, font } from '@/theme/archive';
 
+/** Screen 2 — Album detail: a cream "museum card" with the track list. */
 export default function AlbumDetail() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
-  const insets = useSafeAreaInsets();
-  const { play, track, isPlaying } = usePlayer();
-  const [catalog, setCatalog] = useState<Catalog | null>(null);
+  const player = useArchivePlayer();
 
-  useEffect(() => {
-    let alive = true;
-    loadCatalog().then((c) => alive && setCatalog(c));
-    return () => {
-      alive = false;
-    };
-  }, []);
+  const album = ALBUMS.find((a) => String(a.id) === String(id));
+  if (!album) {
+    return (
+      <View style={[styles.root, styles.center]}>
+        <Text style={styles.missing}>Record not found.</Text>
+        <Pressable onPress={() => router.back()}><Text style={styles.back}>← Archive</Text></Pressable>
+      </View>
+    );
+  }
 
-  const album: CatalogAlbum | undefined = catalog && id ? findAlbum(catalog, id) : undefined;
+  const recNo = String(album.id + 1).padStart(2, '0');
+  const isCurrent = player.album?.id === album.id;
+
+  const openPlayer = (index: number) => {
+    player.playTrack(album, index);
+    router.push('/player');
+  };
 
   return (
-    <View style={styles.screen}>
-      {/* Back */}
-      <Pressable onPress={() => router.back()} style={[styles.back, { top: insets.top + spacing.sm }]} hitSlop={10}>
-        <Ionicons name="chevron-back" size={26} color={colors.ink} />
-      </Pressable>
+    <View style={styles.root}>
+      <View style={styles.header}>
+        <Pressable onPress={() => router.back()} hitSlop={8}><Text style={styles.back}>← Archive</Text></Pressable>
+        <Text style={styles.recNo}>record no. {recNo}</Text>
+      </View>
 
-      {!catalog ? (
-        <View style={styles.center}>
-          <ActivityIndicator color={colors.accent} />
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 28 }}>
+        <View style={styles.hero}>
+          <AlbumArt album={album} size={210} radius={0} />
+          <Text style={styles.title}>{album.title}</Text>
+          <Text style={styles.meta}>{album.year} · {album.tracks.length} tracks</Text>
+          <View style={styles.rule} />
+          <Text style={styles.desc}>{album.desc}</Text>
+          <Pressable
+            onPress={() => openPlayer(0)}
+            style={({ pressed }) => [styles.playBtn, pressed && { backgroundColor: archive.color.redDark }]}
+          >
+            <Text style={styles.playBtnText}>▶  Play Album</Text>
+          </Pressable>
         </View>
-      ) : !album ? (
-        <View style={styles.center}>
-          <Text style={styles.empty}>Album not found.</Text>
-        </View>
-      ) : (
-        <ScrollView contentContainerStyle={{ paddingBottom: 140 }} showsVerticalScrollIndicator={false}>
-          {/* Header art */}
-          <LinearGradient colors={album.gradient} start={{ x: 0.1, y: 0 }} end={{ x: 0.9, y: 1.1 }} style={[styles.header, { paddingTop: insets.top + 64 }]}>
-            <View style={styles.headerArt} />
-            <Text style={styles.headerTitle}>{album.title}</Text>
-            <Text style={styles.headerMeta}>
-              {album.year ? `${album.year} · ` : ''}Said The Whale
-            </Text>
-          </LinearGradient>
 
-          {/* Tracks */}
-          <View style={styles.body}>
-            {album.tracks.length === 0 ? (
-              <View style={styles.emptyState}>
-                <Ionicons name="cloud-upload-outline" size={28} color={colors.foam} />
-                <Text style={styles.emptyTitle}>Your masters go here</Text>
-                <Text style={styles.emptyText}>
-                  Upload this album’s songs to your audio hosting and they’ll stream right here — no app update
-                  needed.
-                </Text>
-              </View>
-            ) : (
-              album.tracks.map((t, i) => {
-                const playable = t.source != null || !!t.uri;
-                const active = track.title === t.title;
-                const pt: PlayerTrack = {
-                  title: t.title,
-                  subtitle: `Said The Whale · ${album.title}`,
-                  gradient: album.gradient,
-                  source: t.source,
-                  uri: t.uri,
-                };
-                return (
-                  <Pressable
-                    key={t.id}
-                    style={styles.trackRow}
-                    disabled={!playable}
-                    onPress={() => play(pt)}
-                  >
-                    <Text style={[styles.trackNum, active && { color: colors.accent }]}>
-                      {active && isPlaying ? '▶' : i + 1}
-                    </Text>
-                    <View style={styles.trackMeta}>
-                      <Text style={[styles.trackTitle, active && { color: colors.accent }, !playable && { color: colors.faint }]} numberOfLines={1}>
-                        {t.title}
-                      </Text>
-                    </View>
-                    {t.membersOnly ? <Tag label="Members" tone="gold" /> : null}
-                    {!playable ? (
-                      <Text style={styles.soon}>Soon</Text>
-                    ) : (
-                      <Ionicons name={active && isPlaying ? 'pause' : 'play'} size={17} color={colors.accent} />
-                    )}
-                  </Pressable>
-                );
-              })
-            )}
+        <View style={styles.listWrap}>
+          <Text style={styles.listEyebrow}>Track List</Text>
+          <View style={styles.list}>
+            {album.tracks.map((t, i) => {
+              const current = isCurrent && player.trackIndex === i;
+              return (
+                <Pressable
+                  key={i}
+                  onPress={() => openPlayer(i)}
+                  style={({ pressed }) => [
+                    styles.row,
+                    current && { backgroundColor: archive.color.rowActive },
+                    pressed && !current && { backgroundColor: archive.color.cream },
+                  ]}
+                >
+                  <Text style={[styles.num, { color: current ? archive.color.red : archive.color.warmGrey }]}>{i + 1}</Text>
+                  <Text style={[styles.trackTitle, { fontWeight: current ? '600' : '400' }]}>{t}</Text>
+                  <Text style={styles.len}>{lengthForTrack(i)}</Text>
+                </Pressable>
+              );
+            })}
           </View>
-        </ScrollView>
-      )}
+        </View>
+      </ScrollView>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: colors.ground },
-  center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  empty: { color: colors.muted },
+  root: { flex: 1, backgroundColor: archive.color.cream },
+  center: { alignItems: 'center', justifyContent: 'center', gap: 12 },
+  missing: { fontFamily: font.sans, color: archive.color.body },
 
-  back: {
-    position: 'absolute',
-    left: spacing.md,
-    zIndex: 10,
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    backgroundColor: 'rgba(0,0,0,0.35)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
+  header: { paddingHorizontal: 20, paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: archive.color.line, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  back: { fontFamily: font.sans, fontSize: 12, letterSpacing: 2, textTransform: 'uppercase', color: archive.color.deepBlue },
+  recNo: { fontFamily: font.script, fontSize: 13, color: archive.color.warmGrey },
 
-  header: { paddingHorizontal: spacing.xl, paddingBottom: spacing.xl },
-  headerArt: { width: 130, height: 130, borderRadius: radius.lg, backgroundColor: 'rgba(255,255,255,0.15)', marginBottom: spacing.lg },
-  headerTitle: { color: colors.white, fontFamily: serif, fontSize: 30, lineHeight: 34 },
-  headerMeta: { color: 'rgba(255,255,255,0.85)', fontSize: 13, marginTop: spacing.xs, fontWeight: '600' },
+  hero: { paddingHorizontal: 28, paddingTop: 28, paddingBottom: 20, alignItems: 'center' },
+  title: { fontFamily: font.sans, fontSize: 22, fontWeight: '600', letterSpacing: 1, marginTop: 22, color: archive.color.ink, textAlign: 'center' },
+  meta: { fontFamily: font.sans, fontSize: 11, letterSpacing: 3, color: archive.color.warmGrey, marginTop: 6, textTransform: 'uppercase' },
+  rule: { width: 36, height: 1, backgroundColor: archive.color.red, marginVertical: 14 },
+  desc: { fontFamily: font.sans, fontSize: 13.5, lineHeight: 22, color: archive.color.bodySoft, textAlign: 'center', maxWidth: 300 },
+  playBtn: { marginTop: 20, backgroundColor: archive.color.red, paddingVertical: 13, paddingHorizontal: 34, borderRadius: 999 },
+  playBtnText: { fontFamily: font.sans, fontSize: 12, fontWeight: '600', letterSpacing: 3, textTransform: 'uppercase', color: archive.color.paper },
 
-  body: { paddingHorizontal: spacing.xl, paddingTop: spacing.md },
-
-  trackRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.lg,
-    paddingVertical: spacing.md,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.line,
-  },
-  trackNum: { color: colors.muted, fontSize: 14, fontWeight: '700', width: 20, textAlign: 'center' },
-  trackMeta: { flex: 1, minWidth: 0 },
-  trackTitle: { color: colors.ink, fontSize: 15, fontWeight: '600' },
-  soon: { color: colors.faint, fontSize: 11, fontWeight: '700' },
-
-  emptyState: { alignItems: 'center', paddingVertical: spacing.xxl, gap: spacing.sm },
-  emptyTitle: { color: colors.ink, fontSize: 16, fontWeight: '700', marginTop: spacing.xs },
-  emptyText: { color: colors.muted, fontSize: 13, textAlign: 'center', lineHeight: 19, maxWidth: 300 },
+  listWrap: { paddingHorizontal: 24, paddingBottom: 28 },
+  listEyebrow: { fontFamily: font.sans, fontSize: 11, letterSpacing: 4, textTransform: 'uppercase', color: archive.color.warmGrey, textAlign: 'center', marginBottom: 10 },
+  list: { borderWidth: 1, borderColor: archive.color.line, backgroundColor: archive.color.paper },
+  row: { flexDirection: 'row', alignItems: 'center', gap: 14, borderBottomWidth: 1, borderBottomColor: archive.color.rowBorder, paddingVertical: 13, paddingHorizontal: 16 },
+  num: { width: 20, fontSize: 11, letterSpacing: 1, textAlign: 'right', fontFamily: font.sans },
+  trackTitle: { flex: 1, fontSize: 13.5, letterSpacing: 0.3, color: archive.color.ink, fontFamily: font.sans },
+  len: { fontSize: 11, color: archive.color.warmGrey, letterSpacing: 1, fontFamily: font.sans },
 });

@@ -7,6 +7,7 @@ import { StatusBar } from 'expo-status-bar';
 
 import { AuthProvider, useAuth } from '@/context/AuthContext';
 import { PlayerProvider } from '@/context/PlayerContext';
+import { PhotoProvider } from '@/context/PhotoContext';
 import { colors } from '@/theme/tokens';
 
 export { ErrorBoundary } from 'expo-router';
@@ -20,8 +21,10 @@ export default function RootLayout() {
     <SafeAreaProvider>
       <AuthProvider>
         <PlayerProvider>
-          <StatusBar style="light" />
-          <RootNav />
+          <PhotoProvider>
+            <StatusBar style="dark" />
+            <RootNav />
+          </PhotoProvider>
         </PlayerProvider>
       </AuthProvider>
     </SafeAreaProvider>

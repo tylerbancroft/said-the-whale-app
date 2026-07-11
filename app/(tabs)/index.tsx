@@ -1,128 +1,107 @@
-import { View, Text, StyleSheet, Pressable } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
+import { useEffect, useState } from 'react';
+import { View, Text, ScrollView, Pressable, StyleSheet, Dimensions } from 'react-native';
 import { useRouter } from 'expo-router';
 
-import { Screen, AppHeader, SectionLabel, Card, Tag, Art, Button, Avatar, DateChip } from '@/components/ui';
-import { colors, spacing, radius, serif, grad } from '@/theme/tokens';
-import { albums, shows } from '@/data/mock';
-import { nativeTracks, nativeSubtitle } from '@/data/tracks';
-import { usePlayer } from '@/context/PlayerContext';
+import { ArchiveHeader } from '@/components/archive/ArchiveHeader';
+import { PhotoBackdrop } from '@/components/archive/PhotoBackdrop';
+import { AlbumArt } from '@/components/archive/AlbumArt';
+import { ALBUMS } from '@/data/redesign';
+import { archive, font } from '@/theme/archive';
 
-export default function Home() {
+const W = Dimensions.get('window').width;
+const SIDE = archive.space.side; // 26
+const COL_GAP = archive.space.gapH; // 40
+const TILE = Math.floor((Math.min(W, 480) - SIDE * 2 - COL_GAP) / 2);
+
+/** Screen 1 — Albums (home): the Record Archive over a band photo. */
+export default function AlbumsScreen() {
   const router = useRouter();
-  const { play } = usePlayer();
-  const nextShow = shows[0];
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const t = setTimeout(() => setLoading(false), 1400);
+    return () => clearTimeout(t);
+  }, []);
 
   return (
-    <Screen>
-      <AppHeader />
+    <View style={styles.root}>
+      <ArchiveHeader />
+      {loading ? (
+        <AlbumsLoading />
+      ) : (
+        <PhotoBackdrop>
+          <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
+            <View style={styles.masthead}>
+              <Text style={styles.eyebrow}>The Complete</Text>
+              <Text style={styles.title}>Record Archive</Text>
+              <View style={styles.rule} />
+            </View>
 
-      {/* Members-only new drop */}
-      <LinearGradient colors={grad.hero} start={{ x: 0.1, y: 0 }} end={{ x: 0.9, y: 1.4 }} style={styles.hero}>
-        <View style={styles.heroKick}>
-          <Tag label="Members only" tone="gold" />
-          <Text style={styles.heroKickText}>New drop</Text>
-        </View>
-        <Text style={styles.heroTitle}>Demo: “Winter Coats” (unreleased)</Text>
-        <Text style={styles.heroSub}>A rough take we’ve never put out. Yours because you’re in the Pod.</Text>
-        <View style={styles.heroRow}>
-          <Button
-            label="Play"
-            icon="play"
-            onPress={() =>
-              play({
-                title: nativeTracks[0].title,
-                subtitle: nativeSubtitle(nativeTracks[0]),
-                gradient: nativeTracks[0].gradient,
-                source: nativeTracks[0].source,
-              })
-            }
-          />
-          <Button label="Save" variant="ghost" icon="bookmark-outline" />
-        </View>
-      </LinearGradient>
+            <View style={styles.grid}>
+              {ALBUMS.map((al) => (
+                <Pressable
+                  key={al.id}
+                  onPress={() => router.push(`/album/${al.id}`)}
+                  style={({ pressed }) => [styles.tile, pressed && { transform: [{ translateY: 1 }] }]}
+                >
+                  <AlbumArt album={al} size={TILE} />
+                  <Text style={styles.tileTitle} numberOfLines={2}>{al.short}</Text>
+                  <Text style={styles.tileYear}>{al.year}</Text>
+                </Pressable>
+              ))}
+            </View>
 
-      {/* Jump back in */}
-      <SectionLabel>Jump back in</SectionLabel>
-      <View style={styles.tiles}>
-        {albums.map((a) => (
-          <Pressable key={a.id} style={styles.tile} onPress={() => router.navigate('/listen')}>
-            <Art gradient={a.gradient} size={42} round={radius.sm} />
-            <Text style={styles.tileText} numberOfLines={2}>
-              {a.title}
-            </Text>
-          </Pressable>
-        ))}
-      </View>
-
-      {/* Pod teaser */}
-      <SectionLabel actionLabel="Open →" onAction={() => router.navigate('/pod')}>
-        Happening in the Pod
-      </SectionLabel>
-      <Card>
-        <View style={styles.podRow}>
-          <Avatar initials="TB" color="#E05A38" />
-          <View style={styles.podBody}>
-            <Text style={styles.podWho}>
-              Tyler <Text style={styles.podBadge}>◈ BAND</Text> <Text style={styles.podWhen}>12m</Text>
-            </Text>
-            <Text style={styles.podText}>just posted the Winter Coats demo for you all — be gentle 🐋</Text>
-          </View>
-        </View>
-      </Card>
-
-      {/* Next show */}
-      <SectionLabel actionLabel="All dates →" onAction={() => router.navigate('/shows')}>
-        Next show
-      </SectionLabel>
-      <Card style={styles.showCard}>
-        <DateChip month={nextShow.month} day={nextShow.day} />
-        <View style={styles.showMeta}>
-          <Text style={styles.showCity}>{nextShow.city}</Text>
-          <Text style={styles.showVenue}>{nextShow.venue}</Text>
-        </View>
-        <Button label="Tickets" small />
-      </Card>
-
-      <Text style={styles.note}>🐋 Everything here is placeholder to show the layout — real content drops straight in.</Text>
-    </Screen>
+            <Text style={styles.footer}>eight records, two thousand seven to present</Text>
+          </ScrollView>
+        </PhotoBackdrop>
+      )}
+    </View>
   );
 }
 
+function AlbumsLoading() {
+  return (
+    <View style={styles.loading}>
+      <View style={styles.spinRing}>
+        <View style={styles.spinInner} />
+      </View>
+      <Text style={styles.loadingCaption}>fetching the archive…</Text>
+      <View style={styles.loadGrid}>
+        {[0, 1, 2, 3].map((i) => (
+          <View key={i} style={styles.loadTile}>
+            <View style={styles.loadArt} />
+            <View style={styles.loadLine} />
+          </View>
+        ))}
+      </View>
+    </View>
+  );
+}
+
+const shadow = archive.photoShadow;
+
 const styles = StyleSheet.create({
-  hero: { borderRadius: radius.xxl, padding: spacing.xl },
-  heroKick: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginBottom: spacing.md },
-  heroKickText: { color: colors.foam, fontWeight: '800', fontSize: 11, letterSpacing: 1.5, textTransform: 'uppercase' },
-  heroTitle: { color: colors.white, fontFamily: serif, fontSize: 23, marginBottom: spacing.xs, lineHeight: 28 },
-  heroSub: { color: 'rgba(255,255,255,0.8)', fontSize: 13, marginBottom: spacing.lg, lineHeight: 19 },
-  heroRow: { flexDirection: 'row', gap: spacing.md },
+  root: { flex: 1, backgroundColor: archive.color.cream },
+  scroll: { paddingTop: 28, paddingBottom: 32 },
+  masthead: { alignItems: 'center', marginBottom: 24, paddingHorizontal: 22 },
+  eyebrow: { fontFamily: font.sans, fontSize: 11, letterSpacing: 4, textTransform: 'uppercase', color: 'rgba(247,241,227,0.85)', ...shadow },
+  title: { fontFamily: font.sans, fontSize: 24, fontWeight: '500', letterSpacing: 1, marginTop: 4, color: archive.color.photoText, ...shadow },
+  rule: { width: 36, height: 1, backgroundColor: archive.color.photoText, opacity: 0.9, marginTop: 12 },
 
-  tiles: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.md },
-  tile: {
-    width: '47%',
-    flexGrow: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.md,
-    backgroundColor: colors.surface2,
-    borderWidth: 1,
-    borderColor: colors.line,
-    borderRadius: radius.md,
-    padding: spacing.sm,
-  },
-  tileText: { color: colors.ink, fontWeight: '700', fontSize: 12, flex: 1 },
+  grid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', paddingHorizontal: SIDE },
+  tile: { width: TILE, marginBottom: archive.space.gapV, alignItems: 'center' },
+  tileTitle: { fontFamily: font.sans, fontSize: 12.5, fontWeight: '600', letterSpacing: 0.5, marginTop: 11, lineHeight: 17, textAlign: 'center', color: archive.color.photoText, ...shadow, textShadowRadius: 8 },
+  tileYear: { fontFamily: font.sans, fontSize: 11, letterSpacing: 2, marginTop: 3, color: archive.color.photoTextSoft, ...shadow, textShadowRadius: 8 },
 
-  podRow: { flexDirection: 'row', gap: spacing.md, alignItems: 'flex-start' },
-  podBody: { flex: 1 },
-  podWho: { color: colors.ink, fontWeight: '700', fontSize: 13 },
-  podBadge: { color: colors.gold, fontWeight: '800', fontSize: 9, letterSpacing: 0.5 },
-  podWhen: { color: colors.faint, fontSize: 11, fontWeight: '500' },
-  podText: { color: colors.foam, fontSize: 13, marginTop: 3, lineHeight: 18 },
+  footer: { fontFamily: font.script, fontSize: 14, textAlign: 'center', marginTop: 26, paddingHorizontal: 22, color: 'rgba(247,241,227,0.9)', ...shadow },
 
-  showCard: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
-  showMeta: { flex: 1 },
-  showCity: { color: colors.ink, fontWeight: '700', fontSize: 15 },
-  showVenue: { color: colors.muted, fontSize: 12.5, marginTop: 2 },
-
-  note: { color: colors.muted, fontSize: 11.5, marginTop: spacing.xl, lineHeight: 17 },
+  // loading state (cream)
+  loading: { flex: 1, backgroundColor: archive.color.cream, alignItems: 'center', paddingTop: 44, paddingHorizontal: 24, gap: 28 },
+  spinRing: { width: 56, height: 56, borderRadius: 28, borderWidth: 1, borderColor: archive.color.line, alignItems: 'center', justifyContent: 'center' },
+  spinInner: { width: 34, height: 34, borderRadius: 17, borderWidth: 1, borderColor: archive.color.warmGrey, borderStyle: 'dashed' },
+  loadingCaption: { fontFamily: font.script, fontSize: 15, color: archive.color.warmGrey },
+  loadGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', width: '100%' },
+  loadTile: { width: '47%', borderWidth: 1, borderColor: archive.color.line, backgroundColor: archive.color.paper, padding: 10, marginBottom: 18 },
+  loadArt: { aspectRatio: 1, backgroundColor: '#EDE3CE' },
+  loadLine: { height: 10, width: '70%', alignSelf: 'center', marginTop: 12, backgroundColor: '#EDE3CE' },
 });

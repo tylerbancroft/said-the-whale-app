@@ -1,17 +1,18 @@
 import { Tabs } from 'expo-router';
 import { View, Pressable, Text, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Ionicons } from '@expo/vector-icons';
 
 import { ArchiveMiniPlayer } from '@/components/archive/ArchiveMiniPlayer';
 import { archive, font } from '@/theme/archive';
 
-type TabMeta = { name: string; label: string; glyph: string };
+type TabMeta = { name: string; label: string; icon: keyof typeof Ionicons.glyphMap; iconOutline: keyof typeof Ionicons.glyphMap };
 
 const TABS: TabMeta[] = [
-  { name: 'index', label: 'Albums', glyph: '◉' },
-  { name: 'chat', label: 'Chat', glyph: '◠' },
-  { name: 'tour', label: 'Tour', glyph: '◈' },
-  { name: 'news', label: 'News', glyph: '☰' },
+  { name: 'index', label: 'Albums', icon: 'disc', iconOutline: 'disc-outline' },
+  { name: 'chat', label: 'Chat', icon: 'water', iconOutline: 'water-outline' },
+  { name: 'tour', label: 'Tour', icon: 'bus', iconOutline: 'bus-outline' },
+  { name: 'news', label: 'News', icon: 'newspaper', iconOutline: 'newspaper-outline' },
 ];
 
 function TabBar({ state, navigation }: any) {
@@ -33,7 +34,7 @@ function TabBar({ state, navigation }: any) {
 
         return (
           <Pressable key={route.key} onPress={onPress} style={styles.tab} hitSlop={6}>
-            <Text style={[styles.glyph, { color }]}>{meta.glyph}</Text>
+            <Ionicons name={focused ? meta.icon : meta.iconOutline} size={19} color={color} />
             <Text style={[styles.label, { color }]}>{meta.label}</Text>
             <View style={[styles.dot, { backgroundColor: focused ? archive.color.red : 'transparent' }]} />
           </Pressable>

@@ -76,3 +76,27 @@ export const font = {
 };
 
 export type ArchiveColor = keyof typeof archive.color;
+
+/** Hex (#RRGGBB) → rgba() with the given alpha. */
+export function withAlpha(hex: string, a: number): string {
+  const h = hex.replace('#', '');
+  const r = parseInt(h.slice(0, 2), 16);
+  const g = parseInt(h.slice(2, 4), 16);
+  const b = parseInt(h.slice(4, 6), 16);
+  return `rgba(${r}, ${g}, ${b}, ${a})`;
+}
+
+/** Text/line colors that read on a given color field — decided by luminance. */
+export function contrastOn(hex: string) {
+  const h = hex.replace('#', '');
+  const r = parseInt(h.slice(0, 2), 16);
+  const g = parseInt(h.slice(2, 4), 16);
+  const b = parseInt(h.slice(4, 6), 16);
+  const light = 0.299 * r + 0.587 * g + 0.114 * b > 150; // light bg → dark text
+  return {
+    light,
+    ink: light ? archive.color.ink : archive.color.paper,
+    soft: light ? 'rgba(70,55,43,0.62)' : 'rgba(251,246,234,0.74)',
+    frame: light ? 'rgba(70,55,43,0.30)' : 'rgba(251,246,234,0.38)',
+  };
+}

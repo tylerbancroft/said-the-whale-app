@@ -3,10 +3,15 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 
 import { Monogram } from '@/components/archive/Monogram';
+import { HandDrawnBox, HandDrawnLine } from '@/components/archive/HandDrawn';
 import { ALBUMS, lengthForTrack, useArchivePlayer } from '@/context/ArchivePlayerContext';
 import { initialsOf } from '@/data/redesign';
 import { coverFor } from '@/assets/covers';
 import { archive, font, contrastOn, withAlpha } from '@/theme/archive';
+
+const COVER = 188;
+// A little printer's ornament per record, so every page carries its own mark.
+const ORNAMENTS = ['❋', '✿', '❂', '✻', '❉', '✺', '❃', '✤', '❈'];
 
 /**
  * Screen 2 — Album detail, "leaned harder" into Wes Anderson: the hero is a
@@ -52,14 +57,21 @@ export default function AlbumDetail() {
 
           <Text style={[styles.eyebrow, onColorSoft]}>[ Record No. {recNo} ]</Text>
           {coverFor(album.id) ? (
-            <Image source={coverFor(album.id)!} style={[styles.heroCover, { borderColor: c.frame }]} resizeMode="cover" />
+            <View style={styles.coverWrap}>
+              <Image source={coverFor(album.id)!} style={[styles.heroCover, { borderColor: c.frame }]} resizeMode="cover" />
+              <HandDrawnBox size={COVER + 22} seed={album.id + 1} color={c.ink} style={styles.coverFrame} />
+            </View>
           ) : (
-            <View style={{ marginTop: 16 }}>
+            <View style={styles.coverWrap}>
               <Monogram label={initialsOf(album)} size={150} color={c.ink} />
+              <HandDrawnBox size={COVER + 22} seed={album.id + 1} color={c.ink} style={styles.coverFrame} />
             </View>
           )}
           <Text style={[styles.title, onColorText]}>{album.title}</Text>
-          <Text style={[styles.stars, onColorSoft]}>✦ ✦ ✦ ✦ ✦</Text>
+          <View style={styles.divider}>
+            <Text style={[styles.ornament, onColorText]}>{ORNAMENTS[album.id % ORNAMENTS.length]}</Text>
+            <HandDrawnLine width={96} color={c.soft} seed={album.id + 5} style={{ marginTop: 5 }} />
+          </View>
           <Text style={[styles.meta, onColorSoft]}>
             {album.year && album.year !== '—' ? `${album.year}  ·  ` : ''}{album.tracks.length} tracks
           </Text>
@@ -114,7 +126,11 @@ const styles = StyleSheet.create({
 
   hero: { paddingHorizontal: 28, paddingBottom: 30, alignItems: 'center' },
   heroFrame: { position: 'absolute', top: 10, left: 10, right: 10, bottom: 10, borderWidth: 1 },
-  heroCover: { marginTop: 16, width: 188, height: 188, borderWidth: 1 },
+  coverWrap: { marginTop: 20, width: COVER, height: COVER, alignItems: 'center', justifyContent: 'center' },
+  heroCover: { width: COVER, height: COVER, borderWidth: 1 },
+  coverFrame: { position: 'absolute', top: -11, left: -11 },
+  divider: { alignItems: 'center', marginTop: 12 },
+  ornament: { fontFamily: font.sans, fontSize: 15 },
   backAbs: { position: 'absolute', left: 20, top: undefined, paddingTop: 0, alignSelf: 'flex-start', zIndex: 2 },
   back: { fontFamily: font.sans, fontSize: 12, letterSpacing: 2, textTransform: 'uppercase' },
   eyebrow: { fontFamily: font.sans, fontSize: 11, letterSpacing: 3, textTransform: 'uppercase', marginTop: 30 },

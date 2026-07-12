@@ -1,7 +1,8 @@
-import { View, Text, StyleSheet, Pressable } from 'react-native';
+import { View, Text, Image, StyleSheet, Pressable } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useArchivePlayer } from '@/context/ArchivePlayerContext';
 import { artInk } from '@/data/redesign';
+import { coverFor } from '@/assets/covers';
 import { archive, font } from '@/theme/archive';
 
 /** Screen 4 — persistent mini-player bar above the bottom nav. */
@@ -19,9 +20,13 @@ export function ArchiveMiniPlayer() {
       <View style={[styles.progress, { width: `${pct * 100}%` }]} />
       <View style={styles.row}>
         <Pressable onPress={() => router.push('/player')} style={styles.left} hitSlop={4}>
-          <View style={[styles.art, { backgroundColor: album.color }]}>
-            <View style={[styles.artRing, { borderColor: line }]} />
-          </View>
+          {coverFor(album.id) ? (
+            <Image source={coverFor(album.id)!} style={styles.art} resizeMode="cover" />
+          ) : (
+            <View style={[styles.art, { backgroundColor: album.color }]}>
+              <View style={[styles.artRing, { borderColor: line }]} />
+            </View>
+          )}
           <View style={styles.meta}>
             <Text style={styles.title} numberOfLines={1}>{p.title}</Text>
             <Text style={styles.album} numberOfLines={1}>{album.title}</Text>

@@ -1,10 +1,12 @@
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, Image, StyleSheet } from 'react-native';
 import { ArchiveAlbum, initialsOf, artInk } from '@/data/redesign';
+import { coverFor } from '@/assets/covers';
 import { font } from '@/theme/archive';
 
 /**
- * Flat brand-color album artwork placeholder: inset frame + two concentric
- * "record" rings + 2-letter monogram. Replace with real artwork in production.
+ * Album artwork. Uses the real cover image when we have one; otherwise falls
+ * back to the flat brand-color placeholder (inset frame + record rings + a
+ * 2-letter monogram).
  */
 export function AlbumArt({
   album,
@@ -15,6 +17,17 @@ export function AlbumArt({
   size: number;
   radius?: number;
 }) {
+  const cover = coverFor(album.id);
+  if (cover) {
+    return (
+      <Image
+        source={cover}
+        style={{ width: size, height: size, borderRadius: radius, backgroundColor: album.color }}
+        resizeMode="cover"
+      />
+    );
+  }
+
   const { line, ink } = artInk(album);
   const inset = size < 180 ? 8 : 10;
   return (

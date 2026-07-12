@@ -1,10 +1,11 @@
-import { View, Text, StyleSheet, Pressable, ScrollView } from 'react-native';
+import { View, Text, Image, StyleSheet, Pressable, ScrollView } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 
 import { Monogram } from '@/components/archive/Monogram';
 import { ALBUMS, lengthForTrack, useArchivePlayer } from '@/context/ArchivePlayerContext';
 import { initialsOf } from '@/data/redesign';
+import { coverFor } from '@/assets/covers';
 import { archive, font, contrastOn, withAlpha } from '@/theme/archive';
 
 /**
@@ -50,12 +51,18 @@ export default function AlbumDetail() {
           </Pressable>
 
           <Text style={[styles.eyebrow, onColorSoft]}>[ Record No. {recNo} ]</Text>
-          <View style={{ marginTop: 14 }}>
-            <Monogram label={initialsOf(album)} size={150} color={c.ink} />
-          </View>
+          {coverFor(album.id) ? (
+            <Image source={coverFor(album.id)!} style={[styles.heroCover, { borderColor: c.frame }]} resizeMode="cover" />
+          ) : (
+            <View style={{ marginTop: 16 }}>
+              <Monogram label={initialsOf(album)} size={150} color={c.ink} />
+            </View>
+          )}
           <Text style={[styles.title, onColorText]}>{album.title}</Text>
           <Text style={[styles.stars, onColorSoft]}>✦ ✦ ✦ ✦ ✦</Text>
-          <Text style={[styles.meta, onColorSoft]}>{album.year}  ·  {album.tracks.length} tracks</Text>
+          <Text style={[styles.meta, onColorSoft]}>
+            {album.year && album.year !== '—' ? `${album.year}  ·  ` : ''}{album.tracks.length} tracks
+          </Text>
         </View>
 
         {/* Cream card — description + play + track list, accented in the album color */}
@@ -107,6 +114,7 @@ const styles = StyleSheet.create({
 
   hero: { paddingHorizontal: 28, paddingBottom: 30, alignItems: 'center' },
   heroFrame: { position: 'absolute', top: 10, left: 10, right: 10, bottom: 10, borderWidth: 1 },
+  heroCover: { marginTop: 16, width: 188, height: 188, borderWidth: 1 },
   backAbs: { position: 'absolute', left: 20, top: undefined, paddingTop: 0, alignSelf: 'flex-start', zIndex: 2 },
   back: { fontFamily: font.sans, fontSize: 12, letterSpacing: 2, textTransform: 'uppercase' },
   eyebrow: { fontFamily: font.sans, fontSize: 11, letterSpacing: 3, textTransform: 'uppercase', marginTop: 30 },

@@ -9,10 +9,10 @@ import { appendixAlbums, studioAlbums } from '@/data/catalog';
 import { useCatalog } from '@/context/CatalogContext';
 import { archive, font } from '@/theme/archive';
 
-const W = Dimensions.get('window').width;
+const W = Math.min(Dimensions.get('window').width, 390);
 const SIDE = archive.space.side;
 const COL_GAP = archive.space.gapH;
-const TILE = Math.floor((Math.min(W, 480) - SIDE * 2 - COL_GAP) / 2);
+const TILE = Math.floor((W - SIDE * 2 - COL_GAP) / 2);
 
 /** Screen 1 — Albums (home): a museum of eras, not a streaming grid. */
 export default function AlbumsScreen() {

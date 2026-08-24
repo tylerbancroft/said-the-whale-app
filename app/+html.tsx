@@ -1,10 +1,8 @@
 import { ScrollViewStyleReset } from 'expo-router/html';
 import type { ReactNode } from 'react';
 
-// This file is web-only and used to configure the root HTML for every
-// web page during static rendering.
-// The contents of this function only run in Node.js environments and
-// do not have access to the DOM or browser APIs.
+// Web-only root HTML. Phone-sized frame on desktop so Tyler can tap through
+// the portrait app in a browser.
 export default function Root({ children }: { children: ReactNode }) {
   return (
     <html lang="en">
@@ -12,28 +10,43 @@ export default function Root({ children }: { children: ReactNode }) {
         <meta charSet="utf-8" />
         <meta httpEquiv="X-UA-Compatible" content="IE=edge" />
         <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
-
-        {/*
-          Disable body scrolling on web. This makes ScrollView components work closer to how they do on native.
-          However, body scrolling is often nice to have for mobile web. If you want to enable it, remove this line.
-        */}
+        <title>Said The Whale — Record Archive</title>
         <ScrollViewStyleReset />
-
-        {/* Using raw CSS styles as an escape-hatch to ensure the background color never flickers in dark-mode. */}
-        <style dangerouslySetInnerHTML={{ __html: responsiveBackground }} />
-        {/* Add any additional <head> elements that you want globally available on web... */}
+        <style dangerouslySetInnerHTML={{ __html: frameCss }} />
       </head>
       <body>{children}</body>
     </html>
   );
 }
 
-const responsiveBackground = `
-body {
-  background-color: #fff;
+const frameCss = `
+html, body {
+  height: 100%;
+  margin: 0;
+  background-color: #F3ECDD;
 }
-@media (prefers-color-scheme: dark) {
-  body {
-    background-color: #000;
+#root {
+  height: 100%;
+}
+@media (min-width: 480px) {
+  html, body {
+    background-color: #2C241C;
   }
-}`;
+  body {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+  #root {
+    width: 390px;
+    max-width: 390px;
+    height: min(844px, 100vh);
+    max-height: 100vh;
+    margin: 0 auto;
+    overflow: hidden;
+    background: #F3ECDD;
+    box-shadow: 0 18px 50px rgba(0,0,0,0.45);
+    border-radius: 16px;
+  }
+}
+`;

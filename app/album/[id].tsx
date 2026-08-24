@@ -7,17 +7,22 @@ import { AlbumArt } from '@/components/archive/AlbumArt';
 import { EraGallery } from '@/components/era/EraGallery';
 import { EraVideos } from '@/components/era/EraVideoCard';
 import { Volume2Art } from '@/components/era/WordmarkArt';
-import { findAlbum, trackHasAudio } from '@/data/catalog';
+import { findAlbum, trackHasAudio, bundledCatalog } from '@/data/catalog';
 import { useCatalog } from '@/context/CatalogContext';
 import { useArchivePlayer, lengthForTrack } from '@/context/ArchivePlayerContext';
 import { archive, font } from '@/theme/archive';
+
+export async function generateStaticParams(): Promise<{ id: string }[]> {
+  return bundledCatalog.albums.map((a) => ({ id: a.id }));
+}
 
 /** Era world: photography / posters / video, then music playing inside that room. */
 export default function AlbumDetail() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { width } = useWindowDimensions();
+  const { width: winW } = useWindowDimensions();
+  const width = Math.min(winW, 390);
   const { catalog } = useCatalog();
   const player = useArchivePlayer();
 
@@ -52,7 +57,7 @@ export default function AlbumDetail() {
   return (
     <View style={styles.root}>
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 40 }}>
-        <View style={[styles.hero, { minHeight: gold ? Math.min(width, 480) * 1.05 : 320 }]}>
+        <View style={[styles.hero, { minHeight: gold ? width * 1.05 : 320 }]}>
           {heroPhoto ? (
             <ImageBackground source={heroPhoto} style={StyleSheet.absoluteFill} resizeMode="cover" />
           ) : album.coverSource ? (

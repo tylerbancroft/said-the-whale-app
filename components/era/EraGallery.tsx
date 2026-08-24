@@ -4,7 +4,7 @@ import { archive, font } from '@/theme/archive';
 
 export function EraGallery({ items, gold }: { items: EraGalleryItem[]; gold?: boolean }) {
   const { width } = useWindowDimensions();
-  const pageW = Math.min(width, 480);
+  const pageW = Math.min(width, 390);
   if (!items.length) return null;
 
   if (gold) {
@@ -50,7 +50,7 @@ export function EraGallery({ items, gold }: { items: EraGalleryItem[]; gold?: bo
 
 export function EraCoverStudy({ source, caption }: { source: number; caption: string }) {
   const { width } = useWindowDimensions();
-  const pageW = Math.min(width, 480);
+  const pageW = Math.min(width, 390);
   return (
     <View style={styles.study}>
       <Image source={source} style={{ width: pageW - 48, height: pageW - 48, alignSelf: 'center' }} resizeMode="cover" />

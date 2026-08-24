@@ -14,7 +14,7 @@ const SIDE = archive.space.side;
 const COL_GAP = archive.space.gapH;
 const TILE = Math.floor((W - SIDE * 2 - COL_GAP) / 2);
 
-/** Screen 1 — Albums (home): a museum of eras, not a streaming grid. */
+/** Screen 1 — Albums (home): photo background, real sleeves, title + year. */
 export default function AlbumsScreen() {
   const router = useRouter();
   const { catalog, ready } = useCatalog();
@@ -40,7 +40,6 @@ export default function AlbumsScreen() {
               <Text style={styles.eyebrow}>The Complete</Text>
               <Text style={styles.title}>Record Archive</Text>
               <View style={styles.rule} />
-              <Text style={styles.lede}>Each record is a room you enter — not a playlist.</Text>
             </View>
 
             <View style={styles.grid}>
@@ -52,18 +51,15 @@ export default function AlbumsScreen() {
                 >
                   <AlbumArt album={al} size={TILE} />
                   <Text style={styles.tileTitle} numberOfLines={2}>{al.short}</Text>
-                  <Text style={styles.tileYear}>{al.releasedLabel}</Text>
-                  {al.era.density === 'gold' ? <Text style={styles.goldMark}>gold era</Text> : null}
+                  <Text style={styles.tileYear}>{al.year}</Text>
                 </Pressable>
               ))}
             </View>
 
-            <Text style={styles.footer}>nine records · two thousand seven to present</Text>
+            <Text style={styles.footer}>nine records, two thousand seven to present</Text>
 
             <View style={styles.appendix}>
-              <Text style={styles.appendixEyebrow}>The Appendix</Text>
-              <Text style={styles.appendixTitle}>EPs & seasonal collections</Text>
-              <Text style={styles.appendixNote}>Quieter rooms, off the main hallway.</Text>
+              <Text style={styles.appendixEyebrow}>EPs</Text>
               {eps.map((al) => (
                 <Pressable
                   key={al.id}
@@ -73,7 +69,7 @@ export default function AlbumsScreen() {
                   <AlbumArt album={al} size={56} radius={8} />
                   <View style={styles.epMeta}>
                     <Text style={styles.epTitle}>{al.title}</Text>
-                    <Text style={styles.epYear}>{al.releasedLabel}</Text>
+                    <Text style={styles.epYear}>{al.year}</Text>
                   </View>
                   <Text style={styles.epArrow}>→</Text>
                 </Pressable>
@@ -114,20 +110,16 @@ const styles = StyleSheet.create({
   eyebrow: { fontFamily: font.sans, fontSize: 11, letterSpacing: 4, textTransform: 'uppercase', color: 'rgba(247,241,227,0.85)', ...shadow },
   title: { fontFamily: font.sans, fontSize: 24, fontWeight: '500', letterSpacing: 1, marginTop: 4, color: archive.color.photoText, ...shadow },
   rule: { width: 36, height: 1, backgroundColor: archive.color.photoText, opacity: 0.9, marginTop: 12 },
-  lede: { fontFamily: font.script, fontSize: 15, color: 'rgba(247,241,227,0.9)', marginTop: 12, textAlign: 'center', ...shadow },
 
   grid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', paddingHorizontal: SIDE },
   tile: { width: TILE, marginBottom: archive.space.gapV, alignItems: 'center' },
   tileTitle: { fontFamily: font.sans, fontSize: 12.5, fontWeight: '600', letterSpacing: 0.5, marginTop: 11, lineHeight: 17, textAlign: 'center', color: archive.color.photoText, ...shadow, textShadowRadius: 8 },
   tileYear: { fontFamily: font.sans, fontSize: 11, letterSpacing: 1, marginTop: 3, color: archive.color.photoTextSoft, ...shadow, textShadowRadius: 8, textAlign: 'center' },
-  goldMark: { fontFamily: font.script, fontSize: 12, color: archive.color.paleYellow, marginTop: 4, ...shadow },
 
   footer: { fontFamily: font.script, fontSize: 14, textAlign: 'center', marginTop: 8, paddingHorizontal: 22, color: 'rgba(247,241,227,0.9)', ...shadow },
 
   appendix: { marginTop: 36, marginHorizontal: 18, padding: 16, backgroundColor: 'rgba(35,26,18,0.42)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.22)', borderRadius: 16 },
-  appendixEyebrow: { fontFamily: font.sans, fontSize: 10, letterSpacing: 3, textTransform: 'uppercase', color: archive.color.photoTextSoft, textAlign: 'center' },
-  appendixTitle: { fontFamily: font.sans, fontSize: 16, fontWeight: '500', color: archive.color.photoText, textAlign: 'center', marginTop: 4 },
-  appendixNote: { fontFamily: font.script, fontSize: 13, color: archive.color.photoTextSoft, textAlign: 'center', marginTop: 4, marginBottom: 14 },
+  appendixEyebrow: { fontFamily: font.sans, fontSize: 10, letterSpacing: 3, textTransform: 'uppercase', color: archive.color.photoTextSoft, textAlign: 'center', marginBottom: 8 },
   epRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 8, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: 'rgba(255,255,255,0.16)' },
   epMeta: { flex: 1 },
   epTitle: { fontFamily: font.sans, fontSize: 13, fontWeight: '600', color: archive.color.photoText },

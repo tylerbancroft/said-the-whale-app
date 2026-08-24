@@ -7,7 +7,7 @@ import { AlbumArt } from '@/components/archive/AlbumArt';
 import { useArchivePlayer, lengthForTrack, fmt } from '@/context/ArchivePlayerContext';
 import { archive, font } from '@/theme/archive';
 
-/** Screen 3 — full-screen player overlay (cream), playing inside the era. */
+/** Screen 3 — full-screen player overlay (cream). */
 export default function Player() {
   const router = useRouter();
   const insets = useSafeAreaInsets();

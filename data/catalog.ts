@@ -43,7 +43,7 @@ export type EraGalleryItem = {
   kind: 'photo' | 'poster' | 'scan' | 'cover' | 'illustration';
   source?: number;
   uri?: string;
-  caption: string;
+  caption?: string;
   credit?: string;
   featured?: boolean;
 };
@@ -115,17 +115,10 @@ function t(
 }
 
 const photos = {
-  heinsTrio: require('../assets/photos/IMG_7223-CROP.jpg'),
-  logFive: require('../assets/photos/IMG_7415.jpg'),
-  rocks: require('../assets/photos/IMG_7579.jpg'),
-  pinkSmoke: require('../assets/photos/IMG_7904.jpg'),
-  table: require('../assets/photos/R1-07896-003A.jpg'),
-  r004: require('../assets/photos/R1-07896-004A.jpg'),
-  r006: require('../assets/photos/R1-07896-006A.jpg'),
-  trailer: require('../assets/photos/R1-07896-020A.jpg'),
-  r025: require('../assets/photos/R1-07896-025A.jpg'),
-  portraits: require('../assets/photos/R1-07892-000A_0001.jpg'),
-  festival: require('../assets/photos/R1-07892-010A.jpg'),
+  heinsStaircase: require('../assets/photos/cascadia/VH_STW_JUNE2018_0260.jpg'),
+  heinsGreenhouse: require('../assets/photos/cascadia/VH_STW_JUNE2018_0188.jpg'),
+  heinsFilm: require('../assets/photos/cascadia/VH_STW_FILM_JUNE2018_0008.jpg'),
+  alayeawTrio: require('../assets/photos/IMG_7223-CROP.jpg'),
 } as const;
 
 const F = {
@@ -153,13 +146,12 @@ export const bundledCatalog: Catalog = {
       recordNo: '01',
       color: '#7C9C8F',
       dark: false,
-      desc: 'Where it all began — Taking Abalonia (May 2007) folded into a double debut of salt-air folk songs written between the mountains and the sea.',
+      desc: 'Taking Abalonia folded into a double debut — salt-air folk songs written between the mountains and the sea.',
       era: {
         density: 'thin',
         hero: 'cover',
-        tagline: 'The world is the sleeve',
-        essay:
-          'This era is a visual desert: no band photoshoot survives in the archive, only the vinyl and the cover. We built the room from that art — lighthouse, raccoon, fireworks — rather than invent photographs that were never taken.',
+        tagline: '',
+        essay: '',
         accent: archive.color.teal,
       },
       coverSource: covers.howeSounds,
@@ -180,15 +172,7 @@ export const bundledCatalog: Catalog = {
         t('plans-for-the-future', 'Plans For The Future', { duration: '3:52', streamTodo: numbered(F.howe, 14, 'Plans For The Future') }),
         t('taking-abalonia', 'Taking Abalonia', { duration: '3:53', streamTodo: numbered(F.howe, 15, 'Taking Abalonia') }),
       ],
-      gallery: [
-        {
-          id: 'howe-cover',
-          kind: 'cover',
-          source: covers.howeSounds,
-          caption: 'The sleeve is the photograph — lighthouse, fireworks, a raccoon at the edge of the frame.',
-          featured: true,
-        },
-      ],
+      gallery: [],
     },
     {
       id: 'islands-disappear',
@@ -204,11 +188,9 @@ export const bundledCatalog: Catalog = {
       desc: 'A love letter to the west coast — ferries, emerald lakes, and the slow ache of leaving home.',
       era: {
         density: 'rich',
-        hero: 'photo',
-        tagline: 'Ferries, film, and unused frames',
-        essay:
-          'VIP posters, an unused 2009 photoshoot, and recording-room candids. The film in this gallery is from the band photo archive — the same era as the record, not a stand-in from a later decade. A Goodnight Moon clip lives here too.',
-        credit: 'Band photo archive — Islands Disappear era',
+        hero: 'cover',
+        tagline: '',
+        essay: '',
         accent: archive.color.dustyBlue,
       },
       coverSource: covers.islandsDisappear,
@@ -227,22 +209,13 @@ export const bundledCatalog: Catalog = {
         t('goodnight-moon', 'Goodnight Moon', { duration: '3:14', streamTodo: numbered(F.islands, 12, 'Goodnight Moon') }),
         t('holly-ontario', 'Holly, Ontario', { duration: '3:11', streamTodo: numbered(F.islands, 13, 'Holly, Ontario') }),
       ],
-      gallery: [
-        { id: 'islands-cover', kind: 'cover', source: covers.islandsDisappear, caption: 'Digital cover — the map of this era.', featured: true },
-        { id: 'islands-table', kind: 'photo', source: photos.table, caption: 'Recording-era film: the table after a long night.', credit: 'Band photo archive' },
-        { id: 'islands-portraits', kind: 'photo', source: photos.portraits, caption: 'Unused photoshoot energy — flash, tank top, bunny ears.', credit: 'Band photo archive, 2009-era film' },
-        { id: 'islands-festival', kind: 'photo', source: photos.festival, caption: 'Under the tent, between sets.', credit: 'Band photo archive' },
-        { id: 'islands-trailer', kind: 'photo', source: photos.trailer, caption: 'Tour trailer, evergreen graphic, soap bubbles.', credit: 'Band photo archive' },
-        { id: 'islands-r004', kind: 'photo', source: photos.r004, caption: 'More from the same roll.', credit: 'Band photo archive' },
-        { id: 'islands-r006', kind: 'photo', source: photos.r006, caption: 'Contact sheet, next frame.', credit: 'Band photo archive' },
-        { id: 'islands-r025', kind: 'photo', source: photos.r025, caption: 'The roll keeps going.', credit: 'Band photo archive' },
-      ],
+      gallery: [],
       videos: [
         {
           id: 'goodnight-moon-clip',
           title: 'Goodnight Moon',
           youtubeId: 'RfNn-hvHkWA',
-          caption: 'The clip that belongs to this record.',
+          caption: 'Goodnight Moon.',
           streamTodo: 'TODO VIDEO: Islands Disappear VIP / Goodnight Moon clip (MP4)',
         },
       ],
@@ -258,13 +231,12 @@ export const bundledCatalog: Catalog = {
       recordNo: '03',
       color: '#C4614E',
       dark: true,
-      desc: 'Named for the neighbourhood that raised it. Bigger rooms, brighter choruses, the same beating heart. There is a booklet; there is no band photoshoot.',
+      desc: 'Named for the neighbourhood that raised it. Bigger rooms, brighter choruses, the same beating heart.',
       era: {
         density: 'thin',
         hero: 'cover',
-        tagline: 'A booklet, not a photoshoot',
-        essay:
-          'Little Mountain has liner pages and no posed band pictures. The world is the booklet: the cover as a museum object, tracks as a table of contents. Lucky and 2010 play from the bundled masters until the rest of the album is hosted.',
+        tagline: '',
+        essay: '',
         accent: archive.color.red,
       },
       coverSource: covers.littleMountain,
@@ -286,15 +258,7 @@ export const bundledCatalog: Catalog = {
         t('seasons', 'Seasons', { streamTodo: numbered(F.little, 15, 'Seasons') }),
         t('a-lesson-in-crime', 'A Lesson in Crime (Bonus Track)', { extra: true, streamTodo: numbered(F.little, 16, 'A Lesson in Crime (Bonus Track)') }),
       ],
-      gallery: [
-        {
-          id: 'lm-cover',
-          kind: 'cover',
-          source: covers.littleMountain,
-          caption: 'The booklet begins here. No band photoshoot exists for this era — the cover is the room.',
-          featured: true,
-        },
-      ],
+      gallery: [],
     },
     {
       id: 'hawaiii',
@@ -310,11 +274,9 @@ export const bundledCatalog: Catalog = {
       desc: 'Three i’s, one summer. Sun-bleached pop songs with sand still in their shoes.',
       era: {
         density: 'rich',
-        hero: 'photo',
-        tagline: 'Three i’s, pink smoke, a red-nosed plane',
-        essay:
-          'The 2013 Canadian / Wolf Tour posters live in PRE-ALAYEAW; until those scans are hosted, this world uses the Jess full cover (not the CD product shot) and the five-piece shoreline photoshoot — orange dress, blown-out sky, magenta smoke.',
-        credit: 'Band photo archive — hawaiii-era lineup',
+        hero: 'cover',
+        tagline: '',
+        essay: '',
         accent: archive.color.mustard,
       },
       coverSource: covers.hawaiii,
@@ -332,12 +294,7 @@ export const bundledCatalog: Catalog = {
         t('helpless-son', 'Helpless Son', { streamTodo: numbered(F.hawaiii, 11, 'Helpless Son') }),
         t('weight-of-the-season', 'The Weight Of The Season', { streamTodo: numbered(F.hawaiii, 12, 'The Weight Of The Season') }),
       ],
-      gallery: [
-        { id: 'haw-cover', kind: 'cover', source: covers.hawaiii, caption: 'hawaiii cover (Jess full) — plane, beach, three i’s.', featured: true },
-        { id: 'haw-rocks', kind: 'photo', source: photos.rocks, caption: 'Shoreline, five-piece, a wash of sky.', credit: 'Band photo archive' },
-        { id: 'haw-smoke', kind: 'poster', source: photos.pinkSmoke, caption: 'Magenta smoke as a tour-poster square.', credit: 'Band photo archive' },
-        { id: 'haw-log', kind: 'photo', source: photos.logFive, caption: 'The log, the coral dress, west-coast sun.', credit: 'Band photo archive' },
-      ],
+      gallery: [],
     },
     {
       id: 'alayeaw',
@@ -350,13 +307,12 @@ export const bundledCatalog: Catalog = {
       recordNo: '05',
       color: '#A79A87',
       dark: false,
-      desc: 'A record about staying open — grief and wonder held carefully in the same two hands. Deluxe extras live after the ten.',
+      desc: 'A record about staying open — grief and wonder held in the same two hands.',
       era: {
         density: 'thin',
         hero: 'cover',
-        tagline: 'Live rooms and drawings we cannot print yet',
-        essay:
-          'Lindsey Blane shot Victoria in April–May 2017; the track drawings are TIF-only in STW Album Drawings. Until those are converted, this world is the high-res cover and a cream reading room — then the ten, then the deluxe extras.',
+        tagline: '',
+        essay: '',
         accent: archive.color.warmGrey,
       },
       coverSource: covers.alayeaw,
@@ -384,11 +340,10 @@ export const bundledCatalog: Catalog = {
       ],
       gallery: [
         {
-          id: 'alayeaw-cover',
-          kind: 'cover',
-          source: covers.alayeaw,
-          caption: 'ALAYEAW — HighResCover RGB Original. Live photos and TIF drawings wait off-app.',
-          featured: true,
+          id: 'alayeaw-trio',
+          kind: 'photo',
+          source: photos.alayeawTrio,
+          credit: '2017',
         },
       ],
     },
@@ -406,11 +361,10 @@ export const bundledCatalog: Catalog = {
       desc: 'An atlas of the Pacific Northwest — rain on cedar, ferry horns, and songs for the long grey winter.',
       era: {
         density: 'gold',
-        hero: 'photo',
-        tagline: 'Rain on cedar, a photography gallery',
-        essay:
-          'This is the dense room. Vanessa Heins photographed the band in 2018; UnAmerican was built by hand from 2,250 printed frames. The PHOTO folder is the gold pack — VIDEO and LYRICS folders in that drop were empty, so lyrics wait for catalog.json. One Heins frame is bundled here as a full exhibition: large, then detail, then the sleeve among the plants.',
-        credit: 'Photograph: Vanessa Heins, 2018',
+        hero: 'cover',
+        tagline: '',
+        essay: '',
+        credit: 'Vanessa Heins, 2018',
         accent: archive.color.deepBlue,
       },
       coverSource: covers.cascadia,
@@ -430,25 +384,22 @@ export const bundledCatalog: Catalog = {
       ],
       gallery: [
         {
-          id: 'cascadia-heins',
+          id: 'cascadia-0260',
           kind: 'photo',
-          source: photos.heinsTrio,
-          caption: 'Three figures, hard light, shadows on the wall — the Cascadia sitting.',
-          credit: 'Vanessa Heins, 2018. From the band photo archive / STW × Vanessa Heins — Favourites.',
-          featured: true,
-        },
-        {
-          id: 'cascadia-heins-study',
-          kind: 'photo',
-          source: photos.heinsTrio,
-          caption: 'Same sitting, held as a gallery print. The gold pack is this density: look, then look again.',
+          source: photos.heinsStaircase,
           credit: 'Vanessa Heins, 2018',
         },
         {
-          id: 'cascadia-cover',
-          kind: 'cover',
-          source: covers.cascadia,
-          caption: 'CASCADIA COVER ART DIGITAL — plants under plastic, A&C mark.',
+          id: 'cascadia-0188',
+          kind: 'photo',
+          source: photos.heinsGreenhouse,
+          credit: 'Vanessa Heins, 2018',
+        },
+        {
+          id: 'cascadia-film-0008',
+          kind: 'photo',
+          source: photos.heinsFilm,
+          credit: 'Vanessa Heins, 2018',
         },
       ],
       videos: [
@@ -472,13 +423,12 @@ export const bundledCatalog: Catalog = {
       recordNo: '07',
       color: '#EFDCA8',
       dark: true,
-      desc: 'Written apart, stitched together. Small bright songs that grew up through the cracks of a strange year. Canonical order — not A–Z.',
+      desc: 'Written apart, stitched together. Small bright songs that grew up through the cracks of a strange year.',
       era: {
         density: 'rich',
         hero: 'cover',
-        tagline: 'Tour squares and two films',
-        essay:
-          'Tour posters (prefer Full Size.jpg / SQUARE) and the Vogue March 26 2022 live set are still in Dropbox. Until they are hosted, the digital cover is framed as the tour square, and Honey Lungs / 99 to the Moon play as the moving pictures of this era. Filenames on the masters have no track numbers — order follows Exclaim / Bandcamp.',
+        tagline: '',
+        essay: '',
         accent: archive.color.paleYellow,
       },
       coverSource: covers.dandelion,
@@ -496,21 +446,7 @@ export const bundledCatalog: Catalog = {
         t('return-to-me', 'Return to me', { extra: true, streamTodo: unnumbered(F.dandelion, 'Return to me') }),
         t('return-to-me-clean', 'Return to me (CLEAN)', { extra: true, streamTodo: unnumbered(F.dandelion, 'Return to me (CLEAN)') }),
       ],
-      gallery: [
-        {
-          id: 'dan-cover',
-          kind: 'poster',
-          source: covers.dandelion,
-          caption: 'Digital cover, framed as the tour square until Full Size.jpg lands.',
-          featured: true,
-        },
-        {
-          id: 'dan-cover-2',
-          kind: 'cover',
-          source: covers.dandelion,
-          caption: 'The same sleeve, held as a record — Dandelion grows through the crack.',
-        },
-      ],
+      gallery: [],
       videos: [
         {
           id: 'honey-lungs',
@@ -539,13 +475,12 @@ export const bundledCatalog: Catalog = {
       recordNo: '08',
       color: '#3D4F6F',
       dark: true,
-      desc: 'Twenty-two outtakes, demos, and remixes. Order follows the compilation — not the alphabet.',
+      desc: 'Twenty-two outtakes, demos, and remixes — the rest of the songs.',
       era: {
         density: 'thin',
         hero: 'cover',
-        tagline: 'A garage, a laptop, the rest of the songs',
-        essay:
-          'Masters are named {Title}_Said The Whale_{ISRC}.mp3, no numbers. Sequence is the Bandcamp / liner order: Girls Night Out through Seasons (Spencer’s Home Recording).',
+        tagline: '',
+        essay: '',
         accent: '#3D4F6F',
       },
       coverSource: covers.bSides,
@@ -573,15 +508,7 @@ export const bundledCatalog: Catalog = {
         t('part-of-your-team', 'Part of Your Team', { duration: '2:05', streamTodo: unnumbered(F.bsides, 'Part of Your Team_Said The Whale_{ISRC}') }),
         t('seasons-spencer', "Seasons (Spencer's Home Recording)", { duration: '1:50', streamTodo: unnumbered(F.bsides, "Seasons (Spencer's Home Recording)_Said The Whale_{ISRC}") }),
       ],
-      gallery: [
-        {
-          id: 'bsides-cover',
-          kind: 'illustration',
-          source: covers.bSides,
-          caption: 'Late-night garage, laptop for a lamp — the compilation as a room.',
-          featured: true,
-        },
-      ],
+      gallery: [],
     },
     {
       id: 'b-sides-vol-2',
@@ -593,13 +520,12 @@ export const bundledCatalog: Catalog = {
       recordNo: '09',
       color: '#46372B',
       dark: true,
-      desc: 'Twelve more from the vault. No official cover exists — this room is type, rings, and the wordmark, never a blank square.',
+      desc: 'Twelve more from the vault.',
       era: {
         density: 'thin',
         hero: 'designed',
-        tagline: 'No sleeve. Only the name.',
-        essay:
-          'Wikipedia has no date; treat this as the follow-up to the 2022 compilation. There is no WAV folder and no cover art. The exhibition title is the artwork: SAID THE WHALE, B-SIDES + RARITIES, VOLUME TWO. Filename spelling kept for O Alexanda.',
+        tagline: '',
+        essay: '',
         accent: archive.color.ink,
       },
       artMode: 'volume2',
@@ -634,8 +560,8 @@ export const bundledCatalog: Catalog = {
       era: {
         density: 'thin',
         hero: 'designed',
-        tagline: 'Before the lighthouse',
-        essay: 'No Cover Art Archive sleeve. The room is early-era teal and the title, sharing DNA with Howe Sounds rather than a fake photograph.',
+        tagline: '',
+        essay: '',
         accent: archive.color.teal,
       },
       artMode: 'wordmark',
@@ -661,30 +587,20 @@ export const bundledCatalog: Catalog = {
       collection: 'ep',
       color: '#8FA8B4',
       dark: false,
-      desc: 'Artwork, but no official audio in this collection. The Evans Lake demo lives with Islands Disappear VIP.',
+      desc: 'Artwork, but no official audio in this collection.',
       era: {
         density: 'thin',
         hero: 'cover',
-        tagline: 'A poster without a needle',
-        essay:
-          'The Magician EP has artwork and no official masters here. Camilo belongs to Islands Disappear. This room is the sleeve you can look at; playback is intentionally still.',
+        tagline: '',
+        essay: '',
         accent: archive.color.dustyBlue,
       },
       coverSource: covers.theMagician,
-      audioNote: 'No official audio in this collection — the Evans Lake demo lives with Islands Disappear VIP.',
       tracks: [
         t('magician-camilo', 'Camilo (The Magician)', { unplayable: 'On Islands Disappear. No Magician-EP master in this catalog.' }),
         t('magician-love-is-art', 'Love is Art / Sleep Through Fire', { unplayable: 'No official audio for this EP in the discography drop.' }),
       ],
-      gallery: [
-        {
-          id: 'magician-cover',
-          kind: 'cover',
-          source: covers.theMagician,
-          caption: 'The artwork is the EP. The songs play elsewhere.',
-          featured: true,
-        },
-      ],
+      gallery: [],
     },
     {
       id: 'bear-bones',
@@ -700,8 +616,8 @@ export const bundledCatalog: Catalog = {
       era: {
         density: 'thin',
         hero: 'cover',
-        tagline: 'Between islands and the mountain',
-        essay: 'A small room: the EP sleeve and five tracks, including the Emerald Lake that also lives on Islands Disappear.',
+        tagline: '',
+        essay: '',
         accent: archive.color.softBrown,
       },
       coverSource: covers.bearBones,
@@ -712,9 +628,7 @@ export const bundledCatalog: Catalog = {
         t('the-fish-and-the-stars', 'The Fish and the Stars', { duration: '2:02', streamTodo: epPath('Bear Bones', 'The Fish and the Stars') }),
         t('bb-emerald-lake', 'Emerald Lake, AB', { duration: '3:09', streamTodo: epPath('Bear Bones', 'Emerald Lake, AB') }),
       ],
-      gallery: [
-        { id: 'bb-cover', kind: 'cover', source: covers.bearBones, caption: 'Bear Bones — the EP as a postcard.', featured: true },
-      ],
+      gallery: [],
     },
     {
       id: 'new-brighton',
@@ -726,12 +640,12 @@ export const bundledCatalog: Catalog = {
       collection: 'ep',
       color: '#53707E',
       dark: true,
-      desc: 'Four songs on the way to Little Mountain — Juno year, 2011.',
+      desc: 'Four songs on the way to Little Mountain.',
       era: {
         density: 'thin',
         hero: 'cover',
-        tagline: 'Four songs, a neighbourhood',
-        essay: 'New Brighton, Sandy Bay Fishing Song, Lines, Little Bird. Two of these return on Volume 2.',
+        tagline: '',
+        essay: '',
         accent: archive.color.deepBlue,
       },
       coverSource: covers.newBrighton,
@@ -741,9 +655,7 @@ export const bundledCatalog: Catalog = {
         t('nb-lines', 'Lines', { duration: '3:56', streamTodo: epPath('New Brighton', 'Lines') }),
         t('nb-little-bird', 'Little Bird', { duration: '3:33', streamTodo: epPath('New Brighton', 'Little Bird') }),
       ],
-      gallery: [
-        { id: 'nb-cover', kind: 'cover', source: covers.newBrighton, caption: 'New Brighton — November 2011.', featured: true },
-      ],
+      gallery: [],
     },
     {
       id: 'i-love-you-ep',
@@ -755,12 +667,12 @@ export const bundledCatalog: Catalog = {
       collection: 'ep',
       color: '#D9A03F',
       dark: true,
-      desc: 'Mostly the cover, plus Barbara-Ann. I Love You and Mother also live on hawaiii.',
+      desc: 'I Love You, Mother, and Barbara-Ann — a small 2013 collection.',
       era: {
         density: 'thin',
         hero: 'cover',
-        tagline: 'A cover, a standard, a preview',
-        essay: 'The Dropbox folder is mostly sleeve plus Barbara-Ann.m4a. I Love You plays here from the bundled master.',
+        tagline: '',
+        essay: '',
         accent: archive.color.mustard,
       },
       coverSource: covers.iLoveYouEp,
@@ -769,9 +681,7 @@ export const bundledCatalog: Catalog = {
         t('ily-ep-barbara-ann', 'Barbara-Ann', { duration: '3:10', streamTodo: `TODO STREAM: ${EPS_ROOT}/I Love You/Barbara-Ann.m4a` }),
         t('ily-ep-mother', 'Mother', { duration: '3:11', streamTodo: epPath('I Love You', 'Mother') }),
       ],
-      gallery: [
-        { id: 'ily-cover', kind: 'cover', source: covers.iLoveYouEp, caption: 'I Love You EP — June 2013.', featured: true },
-      ],
+      gallery: [],
     },
     {
       id: 'west-coast-christmas',
@@ -786,9 +696,8 @@ export const bundledCatalog: Catalog = {
       era: {
         density: 'thin',
         hero: 'cover',
-        tagline: 'December, then gone until next year',
-        essay: 'Released a few at a time each winter, then collected. Cover photo by Miles Storey. Sequence is chronological, 2007 to 2011.',
-        credit: 'Cover photo: Miles Storey',
+        tagline: '',
+        essay: '',
         accent: archive.color.red,
       },
       coverSource: covers.westCoastChristmas,
@@ -805,9 +714,7 @@ export const bundledCatalog: Catalog = {
         t('wcc-hope-and-peace', 'Hope and Peace (2011)', { duration: '2:32', streamTodo: epPath('West Coast Christmas collection', 'Hope and Peace') }),
         t('wcc-summertime-in-australia', 'Summertime in Australia', { duration: '1:22', streamTodo: epPath('West Coast Christmas collection', 'Summertime in Australia') }),
       ],
-      gallery: [
-        { id: 'wcc-cover', kind: 'cover', source: covers.westCoastChristmas, caption: 'West Coast Christmas EP Collection. Photo: Miles Storey.', featured: true },
-      ],
+      gallery: [],
     },
     {
       id: 'remixed',
@@ -823,8 +730,8 @@ export const bundledCatalog: Catalog = {
       era: {
         density: 'thin',
         hero: 'designed',
-        tagline: 'hawaiii, turned over',
-        essay: 'On the Ropes, Resolutions, Safe to Say, I Love You — the Remixed EP. No Cover Art Archive sleeve; the room borrows hawaiii mustard and the word REMIXED.',
+        tagline: '',
+        essay: '',
         accent: archive.color.mustard,
       },
       artMode: 'wordmark',
@@ -835,9 +742,7 @@ export const bundledCatalog: Catalog = {
         t('rmx-safe-to-say', 'Safe to Say', { duration: '3:33', streamTodo: epPath('Remixed', 'Safe to Say') }),
         t('rmx-i-love-you', 'I Love You', { duration: '4:11', source: sourceOf('i-love-you'), streamTodo: epPath('Remixed', 'I Love You') }),
       ],
-      gallery: [
-        { id: 'rmx-haw', kind: 'cover', source: covers.hawaiii, caption: 'hawaiii-era remixes — the plane, inverted in spirit.', featured: true },
-      ],
+      gallery: [],
     },
   ],
 };

@@ -449,13 +449,13 @@ export const bundledCatalog: Catalog = {
         {
           id: 'record-shop-vignette',
           title: 'Record Shop',
-          posterSource: photos.vh0146,
+          posterSource: photos.vh0301,
           streamTodo: 'TODO VIDEO: /STW Photo & Video - Sterling & Zac/Vignettes/Record Shop Vignette 002',
         },
         {
           id: 'love-always-vignette',
           title: 'Love Always',
-          posterSource: photos.vh0188,
+          posterSource: photos.vh0240,
           streamTodo: 'TODO VIDEO: /STW Photo & Video - Sterling & Zac/Vignettes/Love Always - Beach - New Vignette',
         },
       ],

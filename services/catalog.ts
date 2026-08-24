@@ -1,4 +1,4 @@
-import { Catalog, bundledCatalog } from '@/data/catalog';
+import { Catalog, bundledCatalog, mergeCatalog } from '@/data/catalog';
 
 /**
  * Loads the music catalog.
@@ -10,7 +10,8 @@ import { Catalog, bundledCatalog } from '@/data/catalog';
  * └─────────────────────────────────────────────────────────────────────────┘
  *
  * Until then (or if the network fails), it falls back to the bundled catalog,
- * so the app always works.
+ * so the app always works. Remote JSON overlays `uri` / `lyrics` / gallery
+ * URLs onto the bundled era worlds (covers + track lists stay local).
  */
 
 export const CATALOG_URL = ''; // e.g. 'https://media.saidthewhale.com/catalog.json'
@@ -21,7 +22,7 @@ export async function loadCatalog(): Promise<Catalog> {
       const res = await fetch(CATALOG_URL);
       if (res.ok) {
         const data = (await res.json()) as Catalog;
-        if (data?.albums?.length) return data;
+        if (data?.albums?.length) return mergeCatalog(data, bundledCatalog);
       }
     } catch {
       // fall through to bundled

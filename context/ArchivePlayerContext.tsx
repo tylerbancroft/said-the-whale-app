@@ -1,42 +1,40 @@
 import { createContext, useContext, useState, useEffect, useRef, useCallback, ReactNode } from 'react';
 import { createAudioPlayer, setAudioModeAsync } from 'expo-audio';
-import { ALBUMS, ArchiveAlbum, TRACK_LENGTHS } from '@/data/redesign';
-import { nativeTracks } from '@/data/tracks';
+import { CatalogAlbum, CatalogTrack, trackHasAudio } from '@/data/catalog';
 
 /**
- * Player state for the "Boutique Archive" redesign: current album + track,
- * a scrubbable elapsed clock, and a derived queue. Tracks with a bundled
- * recording ("I Love You", "Lucky") play for real via expo-audio; the rest
- * simulate playback (1s ticks, auto-advance) exactly like the design prototype
- * until the full catalog streams.
+ * Player for era worlds: current album + track, a scrubbable elapsed clock.
+ * Tracks with a bundled recording or a remote `uri` play via expo-audio;
+ * the rest simulate playback (1s ticks, auto-advance) until catalog.json
+ * supplies stream URLs.
  */
 
-// Bundled audio by (loose) track-title match.
-const SOURCE_BY_TITLE: Record<string, number> = {};
-for (const t of nativeTracks) SOURCE_BY_TITLE[t.title.toLowerCase()] = t.source;
-
-export function lengthForTrack(trackIndex: number): string {
-  return TRACK_LENGTHS[trackIndex % TRACK_LENGTHS.length];
-}
 export function secondsOf(len: string): number {
   const [m, s] = len.split(':').map(Number);
-  return m * 60 + s;
+  return (m || 0) * 60 + (s || 0);
 }
 export function fmt(sec: number): string {
   const s = Math.max(0, Math.floor(sec));
   return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
 }
+export function lengthForTrack(track: CatalogTrack, index: number): string {
+  if (track.duration) return track.duration;
+  const fallback = ['3:12', '4:05', '2:58', '3:41', '4:22', '3:34', '3:07', '4:48'];
+  return fallback[index % fallback.length];
+}
 
 type ArchivePlayerValue = {
-  album: ArchiveAlbum | null;
+  album: CatalogAlbum | null;
+  track: CatalogTrack | null;
   trackIndex: number;
   title: string | null;
   playing: boolean;
   elapsed: number;
   duration: number;
   hasTrack: boolean;
-  playAlbum: (album: ArchiveAlbum) => void;
-  playTrack: (album: ArchiveAlbum, index: number) => void;
+  isLiveAudio: boolean;
+  playAlbum: (album: CatalogAlbum) => void;
+  playTrack: (album: CatalogAlbum, index: number) => void;
   toggle: () => void;
   seekFraction: (f: number) => void;
   next: () => void;
@@ -45,17 +43,24 @@ type ArchivePlayerValue = {
 
 const Ctx = createContext<ArchivePlayerValue | undefined>(undefined);
 
+function firstPlayableIndex(album: CatalogAlbum): number {
+  const i = album.tracks.findIndex((t) => !t.unplayable);
+  return i < 0 ? 0 : i;
+}
+
 export function ArchivePlayerProvider({ children }: { children: ReactNode }) {
-  const [album, setAlbum] = useState<ArchiveAlbum | null>(null);
+  const [album, setAlbum] = useState<CatalogAlbum | null>(null);
   const [trackIndex, setTrackIndex] = useState(0);
   const [playing, setPlaying] = useState(false);
   const [elapsed, setElapsed] = useState(0);
 
   const playerRef = useRef<ReturnType<typeof createAudioPlayer> | null>(null);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const duration = album ? secondsOf(lengthForTrack(trackIndex)) : 0;
+  const track = album?.tracks[trackIndex] ?? null;
+  const duration = album && track ? secondsOf(lengthForTrack(track, trackIndex)) : 0;
   const durationRef = useRef(duration);
   durationRef.current = duration;
+  const isLiveAudio = Boolean(track && trackHasAudio(track));
 
   useEffect(() => {
     playerRef.current = createAudioPlayer(null);
@@ -70,7 +75,6 @@ export function ArchivePlayerProvider({ children }: { children: ReactNode }) {
     if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; }
   };
 
-  // advanceRef lets the interval call the latest next() without re-subscribing.
   const advanceRef = useRef<() => void>(() => {});
 
   const startTimer = useCallback(() => {
@@ -86,13 +90,16 @@ export function ArchivePlayerProvider({ children }: { children: ReactNode }) {
     }, 1000);
   }, []);
 
-  const loadReal = useCallback((title: string) => {
-    const src = SOURCE_BY_TITLE[title.toLowerCase()];
+  const loadAudio = useCallback((next: CatalogTrack | undefined) => {
     const p = playerRef.current;
-    if (!p) return;
+    if (!p || !next) return;
     try {
-      if (src != null) {
-        p.replace(src as Parameters<typeof p.replace>[0]);
+      if (next.uri) {
+        p.replace({ uri: next.uri } as Parameters<typeof p.replace>[0]);
+        p.seekTo(0);
+        p.play();
+      } else if (next.source != null) {
+        p.replace(next.source as Parameters<typeof p.replace>[0]);
         p.seekTo(0);
         p.play();
       } else {
@@ -101,41 +108,45 @@ export function ArchivePlayerProvider({ children }: { children: ReactNode }) {
     } catch {}
   }, []);
 
-  const playTrack = useCallback((al: ArchiveAlbum, index: number) => {
+  const playTrack = useCallback((al: CatalogAlbum, index: number) => {
+    const tr = al.tracks[index];
+    if (!tr || tr.unplayable) return;
     setAlbum(al);
     setTrackIndex(index);
     setElapsed(0);
     setPlaying(true);
-    loadReal(al.tracks[index]);
+    loadAudio(tr);
     startTimer();
-  }, [loadReal, startTimer]);
+  }, [loadAudio, startTimer]);
 
-  const playAlbum = useCallback((al: ArchiveAlbum) => playTrack(al, 0), [playTrack]);
+  const playAlbum = useCallback((al: CatalogAlbum) => playTrack(al, firstPlayableIndex(al)), [playTrack]);
 
   const next = useCallback(() => {
     setAlbum((al) => {
       if (!al) return al;
       setTrackIndex((i) => {
-        const ni = i + 1;
+        let ni = i + 1;
+        while (ni < al.tracks.length && al.tracks[ni].unplayable) ni += 1;
         if (ni >= al.tracks.length) { setPlaying(false); stopTimer(); return i; }
         setElapsed(0);
-        loadReal(al.tracks[ni]);
+        loadAudio(al.tracks[ni]);
         return ni;
       });
       return al;
     });
-  }, [loadReal]);
+  }, [loadAudio]);
   advanceRef.current = next;
 
   const prev = useCallback(() => {
     if (!album) return;
     setTrackIndex((i) => {
-      const pi = Math.max(0, i - 1);
+      let pi = Math.max(0, i - 1);
+      while (pi > 0 && album.tracks[pi].unplayable) pi -= 1;
       setElapsed(0);
-      loadReal(album.tracks[pi]);
+      loadAudio(album.tracks[pi]);
       return pi;
     });
-  }, [album, loadReal]);
+  }, [album, loadAudio]);
 
   const toggle = useCallback(() => {
     if (!album) return;
@@ -157,12 +168,14 @@ export function ArchivePlayerProvider({ children }: { children: ReactNode }) {
 
   const value: ArchivePlayerValue = {
     album,
+    track,
     trackIndex,
-    title: album ? album.tracks[trackIndex] : null,
+    title: track?.title ?? null,
     playing,
     elapsed,
     duration,
     hasTrack: album != null,
+    isLiveAudio,
     playAlbum,
     playTrack,
     toggle,
@@ -179,6 +192,3 @@ export function useArchivePlayer() {
   if (!ctx) throw new Error('useArchivePlayer must be used within an ArchivePlayerProvider');
   return ctx;
 }
-
-// Convenience for screens that want the album objects.
-export { ALBUMS };

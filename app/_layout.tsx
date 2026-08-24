@@ -7,8 +7,9 @@ import { StatusBar } from 'expo-status-bar';
 
 import { AuthProvider, useAuth } from '@/context/AuthContext';
 import { ArchivePlayerProvider } from '@/context/ArchivePlayerContext';
+import { CatalogProvider } from '@/context/CatalogContext';
 import { PhotoProvider } from '@/context/PhotoContext';
-import { colors } from '@/theme/tokens';
+import { archive } from '@/theme/archive';
 
 export { ErrorBoundary } from 'expo-router';
 
@@ -20,12 +21,14 @@ export default function RootLayout() {
   return (
     <SafeAreaProvider>
       <AuthProvider>
-        <ArchivePlayerProvider>
-          <PhotoProvider>
-            <StatusBar style="dark" />
-            <RootNav />
-          </PhotoProvider>
-        </ArchivePlayerProvider>
+        <CatalogProvider>
+          <ArchivePlayerProvider>
+            <PhotoProvider>
+              <StatusBar style="dark" />
+              <RootNav />
+            </PhotoProvider>
+          </ArchivePlayerProvider>
+        </CatalogProvider>
       </AuthProvider>
     </SafeAreaProvider>
   );
@@ -43,10 +46,14 @@ function RootNav() {
 
   useEffect(() => {
     if (!ready) return;
-    const inTabs = segments[0] === '(tabs)';
     const onOnboarding = segments[0] === 'onboarding';
+    const inApp =
+      segments[0] === '(tabs)' ||
+      segments[0] === 'player' ||
+      segments[0] === 'album' ||
+      segments[0] === 'article';
 
-    if (!unlocked && inTabs) {
+    if (!unlocked && inApp) {
       router.replace('/onboarding');
     } else if (unlocked && onOnboarding) {
       router.replace('/');
@@ -56,7 +63,7 @@ function RootNav() {
   if (!ready) {
     return (
       <View style={styles.loading}>
-        <ActivityIndicator color={colors.accent} />
+        <ActivityIndicator color={archive.color.red} />
       </View>
     );
   }
@@ -65,17 +72,18 @@ function RootNav() {
     <Stack
       screenOptions={{
         headerShown: false,
-        contentStyle: { backgroundColor: colors.ground },
+        contentStyle: { backgroundColor: archive.color.cream },
         animation: 'fade',
       }}
     >
       <Stack.Screen name="(tabs)" />
       <Stack.Screen name="onboarding" />
+      <Stack.Screen name="album/[id]" />
       <Stack.Screen name="player" options={{ animation: 'fade' }} />
     </Stack>
   );
 }
 
 const styles = StyleSheet.create({
-  loading: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.ground },
+  loading: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: archive.color.cream },
 });

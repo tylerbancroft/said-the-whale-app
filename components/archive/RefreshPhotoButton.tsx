@@ -33,5 +33,5 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  tint: { ...StyleSheet.absoluteFillObject, backgroundColor: archive.color.circleGlassBg },
+  tint: { ...StyleSheet.absoluteFill, backgroundColor: archive.color.circleGlassBg },
 });

@@ -4,6 +4,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { AlbumArt } from '@/components/archive/AlbumArt';
 import { EraGallery } from '@/components/era/EraGallery';
+import { EraVideos } from '@/components/era/EraVideoCard';
 import { findAlbum, bundledCatalog } from '@/data/catalog';
 import { useCatalog } from '@/context/CatalogContext';
 import { useArchivePlayer, lengthForTrack } from '@/context/ArchivePlayerContext';
@@ -71,6 +72,7 @@ export default function AlbumDetail() {
         </View>
 
         {galleryPhotos.length ? <EraGallery items={galleryPhotos} /> : null}
+        {album.videos?.length ? <EraVideos videos={album.videos} /> : null}
 
         <View style={styles.listWrap}>
           <Text style={styles.listEyebrow}>Track List</Text>

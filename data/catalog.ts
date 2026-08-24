@@ -55,7 +55,9 @@ export type EraVideo = {
   /** TODO: host the Dropbox MP4 and put the https URL here. */
   uri?: string;
   streamTodo?: string;
-  caption: string;
+  caption?: string;
+  /** Still used as a quiet poster when there is no YouTube / hosted URL. */
+  posterSource?: number;
 };
 
 export type EraWorld = {
@@ -115,11 +117,30 @@ function t(
 }
 
 const photos = {
-  heinsStaircase: require('../assets/photos/cascadia/VH_STW_JUNE2018_0260.jpg'),
-  heinsGreenhouse: require('../assets/photos/cascadia/VH_STW_JUNE2018_0188.jpg'),
-  heinsFilm: require('../assets/photos/cascadia/VH_STW_FILM_JUNE2018_0008.jpg'),
+  vh0260: require('../assets/photos/cascadia/VH_STW_JUNE2018_0260.jpg'),
+  vh0188: require('../assets/photos/cascadia/VH_STW_JUNE2018_0188.jpg'),
+  vh0239: require('../assets/photos/cascadia/VH_STW_JUNE2018_0239.jpg'),
+  vh0240: require('../assets/photos/cascadia/VH_STW_JUNE2018_0240.jpg'),
+  vh0266: require('../assets/photos/cascadia/VH_STW_JUNE2018_0266.jpg'),
+  vh0274: require('../assets/photos/cascadia/VH_STW_JUNE2018_0274.jpg'),
+  vh0291: require('../assets/photos/cascadia/VH_STW_JUNE2018_0291.jpg'),
+  vh0301: require('../assets/photos/cascadia/VH_STW_JUNE2018_0301.jpg'),
+  vh0019: require('../assets/photos/cascadia/VH_STW_JUNE2018_0019.jpg'),
+  vh0028: require('../assets/photos/cascadia/VH_STW_JUNE2018_0028.jpg'),
+  vh0082: require('../assets/photos/cascadia/VH_STW_JUNE2018_0082.jpg'),
+  vh0146: require('../assets/photos/cascadia/VH_STW_JUNE2018_0146.jpg'),
+  vh0150: require('../assets/photos/cascadia/VH_STW_JUNE2018_0150.jpg'),
+  vhFilm0008: require('../assets/photos/cascadia/VH_STW_FILM_JUNE2018_0008.jpg'),
+  vhFilm0026: require('../assets/photos/cascadia/VH_STW_FILM_JUNE2018_0026.jpg'),
+  vhFilm0048: require('../assets/photos/cascadia/VH_STW_FILM_JUNE2018_0048.jpg'),
   alayeawTrio: require('../assets/photos/IMG_7223-CROP.jpg'),
 } as const;
+
+const HEINS_2018 = 'Vanessa Heins, 2018';
+
+function heinsStill(id: string, source: number): EraGalleryItem {
+  return { id, kind: 'photo', source, credit: HEINS_2018 };
+}
 
 const F = {
   howe: '01 Howe Sounds',
@@ -383,32 +404,59 @@ export const bundledCatalog: Catalog = {
         t('gambier-island-green', 'Gambier Island Green', { duration: '3:30', streamTodo: numbered(F.cascadia, 12, 'Gambier Island Green') }),
       ],
       gallery: [
-        {
-          id: 'cascadia-0260',
-          kind: 'photo',
-          source: photos.heinsStaircase,
-          credit: 'Vanessa Heins, 2018',
-        },
-        {
-          id: 'cascadia-0188',
-          kind: 'photo',
-          source: photos.heinsGreenhouse,
-          credit: 'Vanessa Heins, 2018',
-        },
-        {
-          id: 'cascadia-film-0008',
-          kind: 'photo',
-          source: photos.heinsFilm,
-          credit: 'Vanessa Heins, 2018',
-        },
+        heinsStill('cascadia-0260', photos.vh0260),
+        heinsStill('cascadia-0188', photos.vh0188),
+        heinsStill('cascadia-film-0008', photos.vhFilm0008),
+        heinsStill('cascadia-0019', photos.vh0019),
+        heinsStill('cascadia-0146', photos.vh0146),
+        heinsStill('cascadia-0082', photos.vh0082),
+        heinsStill('cascadia-0301', photos.vh0301),
+        heinsStill('cascadia-0240', photos.vh0240),
+        heinsStill('cascadia-film-0026', photos.vhFilm0026),
+        heinsStill('cascadia-0239', photos.vh0239),
+        heinsStill('cascadia-0028', photos.vh0028),
+        heinsStill('cascadia-0150', photos.vh0150),
+        heinsStill('cascadia-0266', photos.vh0266),
+        heinsStill('cascadia-0274', photos.vh0274),
+        heinsStill('cascadia-0291', photos.vh0291),
+        heinsStill('cascadia-film-0048', photos.vhFilm0048),
       ],
       videos: [
         {
           id: 'unamerican',
-          title: 'UnAmerican (Official Video)',
+          title: 'UnAmerican',
           youtubeId: 'vYY0eZHvSGo',
-          caption: 'Prism Prize Audience Award. 2,250 pieces of paper, no green screen. Directed by Johnny Jansen / GARDEN.',
           streamTodo: 'TODO VIDEO: /STW Photo & Video - Sterling & Zac/ UnAmerican',
+        },
+        {
+          id: 'unamerican-popos',
+          title: "UnAmerican — live at Popo's house",
+          youtubeId: 'VxBYnRD62QM',
+          streamTodo: 'TODO VIDEO: /STW Photo & Video - Sterling & Zac/Live Sessions/UnAmerican_1',
+        },
+        {
+          id: 'unamerican-save-on-meats',
+          title: 'UnAmerican — Save On Meats',
+          youtubeId: 'A3MzGN-5I50',
+          streamTodo: 'TODO VIDEO: /STW Photo & Video - Sterling & Zac/Save on Meats/Save on Meats_UnAmerican STW Live Clip .mp4',
+        },
+        {
+          id: 'wake-up-malkin',
+          title: 'Wake Up — Malkin Bowl',
+          youtubeId: '2gjl_ved7VE',
+          streamTodo: 'TODO VIDEO: /STW Photo & Video - Sterling & Zac/ Malkin Bowl / Stanley Park live sesh',
+        },
+        {
+          id: 'record-shop-vignette',
+          title: 'Record Shop',
+          posterSource: photos.vh0146,
+          streamTodo: 'TODO VIDEO: /STW Photo & Video - Sterling & Zac/Vignettes/Record Shop Vignette 002',
+        },
+        {
+          id: 'love-always-vignette',
+          title: 'Love Always',
+          posterSource: photos.vh0188,
+          streamTodo: 'TODO VIDEO: /STW Photo & Video - Sterling & Zac/Vignettes/Love Always - Beach - New Vignette',
         },
       ],
     },

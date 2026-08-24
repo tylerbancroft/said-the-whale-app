@@ -46,6 +46,8 @@ export type EraGalleryItem = {
   caption?: string;
   credit?: string;
   featured?: boolean;
+  /** Landscape / film frame — full width, not cropped to a portrait tile. */
+  wide?: boolean;
 };
 
 export type EraVideo = {
@@ -130,16 +132,18 @@ const photos = {
   vh0082: require('../assets/photos/cascadia/VH_STW_JUNE2018_0082.jpg'),
   vh0146: require('../assets/photos/cascadia/VH_STW_JUNE2018_0146.jpg'),
   vh0150: require('../assets/photos/cascadia/VH_STW_JUNE2018_0150.jpg'),
+  vh0313: require('../assets/photos/cascadia/VH_STW_JUNE2018_0313.jpg'),
   vhFilm0008: require('../assets/photos/cascadia/VH_STW_FILM_JUNE2018_0008.jpg'),
   vhFilm0026: require('../assets/photos/cascadia/VH_STW_FILM_JUNE2018_0026.jpg'),
   vhFilm0048: require('../assets/photos/cascadia/VH_STW_FILM_JUNE2018_0048.jpg'),
+  vhFilm0167: require('../assets/photos/cascadia/VH_STW_FILM_JUNE2018_0167.jpg'),
   alayeawTrio: require('../assets/photos/IMG_7223-CROP.jpg'),
 } as const;
 
 const HEINS_2018 = 'Vanessa Heins, 2018';
 
-function heinsStill(id: string, source: number): EraGalleryItem {
-  return { id, kind: 'photo', source, credit: HEINS_2018 };
+function heinsStill(id: string, source: number, wide = false): EraGalleryItem {
+  return { id, kind: 'photo', source, credit: HEINS_2018, wide };
 }
 
 const F = {
@@ -406,20 +410,22 @@ export const bundledCatalog: Catalog = {
       gallery: [
         heinsStill('cascadia-0260', photos.vh0260),
         heinsStill('cascadia-0188', photos.vh0188),
-        heinsStill('cascadia-film-0008', photos.vhFilm0008),
-        heinsStill('cascadia-0019', photos.vh0019),
-        heinsStill('cascadia-0146', photos.vh0146),
-        heinsStill('cascadia-0082', photos.vh0082),
-        heinsStill('cascadia-0301', photos.vh0301),
-        heinsStill('cascadia-0240', photos.vh0240),
-        heinsStill('cascadia-film-0026', photos.vhFilm0026),
-        heinsStill('cascadia-0239', photos.vh0239),
-        heinsStill('cascadia-0028', photos.vh0028),
         heinsStill('cascadia-0150', photos.vh0150),
+        heinsStill('cascadia-0019', photos.vh0019, true),
+        heinsStill('cascadia-0082', photos.vh0082, true),
+        heinsStill('cascadia-0313', photos.vh0313),
+        heinsStill('cascadia-film-0167', photos.vhFilm0167, true),
+        heinsStill('cascadia-0239', photos.vh0239, true),
+        heinsStill('cascadia-film-0008', photos.vhFilm0008, true),
+        heinsStill('cascadia-0146', photos.vh0146),
+        heinsStill('cascadia-0301', photos.vh0301, true),
+        heinsStill('cascadia-0240', photos.vh0240, true),
+        heinsStill('cascadia-film-0026', photos.vhFilm0026, true),
+        heinsStill('cascadia-0028', photos.vh0028, true),
         heinsStill('cascadia-0266', photos.vh0266),
         heinsStill('cascadia-0274', photos.vh0274),
         heinsStill('cascadia-0291', photos.vh0291),
-        heinsStill('cascadia-film-0048', photos.vhFilm0048),
+        heinsStill('cascadia-film-0048', photos.vhFilm0048, true),
       ],
       videos: [
         {

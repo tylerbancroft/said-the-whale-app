@@ -2,6 +2,29 @@ import { Image, StyleSheet, Text, View, useWindowDimensions } from 'react-native
 import { EraGalleryItem } from '@/data/catalog';
 import { archive, font } from '@/theme/archive';
 
+type Row = { items: EraGalleryItem[]; wide: boolean };
+
+function rowsFor(photos: EraGalleryItem[]): Row[] {
+  const rows: Row[] = [];
+  let pair: EraGalleryItem[] = [];
+  const flushPair = () => {
+    if (!pair.length) return;
+    rows.push({ items: pair, wide: false });
+    pair = [];
+  };
+  for (const p of photos) {
+    if (p.wide) {
+      flushPair();
+      rows.push({ items: [p], wide: true });
+    } else {
+      pair.push(p);
+      if (pair.length === 2) flushPair();
+    }
+  }
+  flushPair();
+  return rows;
+}
+
 /** Heins stills under the cream museum card. Credit once — no captions. */
 export function EraGallery({ items }: { items: EraGalleryItem[] }) {
   const { width } = useWindowDimensions();
@@ -10,10 +33,11 @@ export function EraGallery({ items }: { items: EraGalleryItem[] }) {
   if (!photos.length) return null;
 
   const credit = photos.find((p) => p.credit)?.credit;
-  const [hero, ...rest] = photos;
   const gap = 8;
   const inner = pageW - 48;
   const colW = (inner - gap) / 2;
+  const hero = photos[0].wide ? undefined : photos[0];
+  const rows = rowsFor(hero ? photos.slice(1) : photos);
 
   const srcOf = (item: EraGalleryItem) =>
     item.source ?? (item.uri ? { uri: item.uri } : undefined);
@@ -22,25 +46,45 @@ export function EraGallery({ items }: { items: EraGalleryItem[] }) {
     <View style={styles.wrap}>
       {hero ? (
         <Image
+          key={hero.id}
           source={srcOf(hero)}
           style={[styles.img, { width: inner, height: inner * 1.22 }]}
           resizeMode="cover"
         />
       ) : null}
-      <View style={[styles.grid, { width: inner, gap }]}>
-        {rest.map((item) => {
+      {rows.map((row, i) => {
+        if (row.wide) {
+          const item = row.items[0];
           const src = srcOf(item);
           if (!src) return null;
           return (
             <Image
               key={item.id}
               source={src}
-              style={[styles.img, { width: colW, height: colW * 1.22 }]}
+              style={[styles.img, { width: inner, height: inner * 0.66 }]}
               resizeMode="cover"
             />
           );
-        })}
-      </View>
+        }
+        const full = row.items.length === 1;
+        return (
+          <View key={`row-${i}`} style={[styles.grid, { width: inner, gap }]}>
+            {row.items.map((item) => {
+              const src = srcOf(item);
+              if (!src) return null;
+              const w = full ? inner : colW;
+              return (
+                <Image
+                  key={item.id}
+                  source={src}
+                  style={[styles.img, { width: w, height: w * 1.22 }]}
+                  resizeMode="cover"
+                />
+              );
+            })}
+          </View>
+        );
+      })}
       {credit ? <Text style={styles.credit}>{credit}</Text> : null}
     </View>
   );

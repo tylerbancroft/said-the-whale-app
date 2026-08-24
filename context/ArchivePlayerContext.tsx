@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useEffect, useRef, useCallback, ReactNode } from 'react';
+import { Platform } from 'react-native';
 import { createAudioPlayer, setAudioModeAsync, type AudioStatus } from 'expo-audio';
 import {
   CatalogAlbum,
@@ -9,13 +10,17 @@ import {
   nextPlayableIndex,
   prevPlayableIndex,
 } from '@/data/catalog';
+import { createWebArchivePlayer, type WebArchivePlayer } from '@/context/webAudioPlayer';
+
+type ArchiveEngine = ReturnType<typeof createAudioPlayer> | WebArchivePlayer;
 
 /**
- * One expo-audio player for the archive.
+ * Archive player.
  *
  * Remote tracks: `player.replace({ uri: track.uri })` then `play()`.
  * Bundled tracks: `player.replace(track.source)` then `play()`.
  * `uri` wins when both exist (catalog.json overlay).
+ * Web uses a small HTMLAudioElement path; native uses expo-audio.
  */
 
 export function secondsOf(len: string): number {
@@ -59,7 +64,7 @@ export function ArchivePlayerProvider({ children }: { children: ReactNode }) {
   const [elapsed, setElapsed] = useState(0);
   const [audioDuration, setAudioDuration] = useState(0);
 
-  const playerRef = useRef<ReturnType<typeof createAudioPlayer> | null>(null);
+  const playerRef = useRef<ArchiveEngine | null>(null);
   const albumRef = useRef<CatalogAlbum | null>(null);
   const indexRef = useRef(0);
   const ignoreFinishRef = useRef(false);
@@ -166,13 +171,20 @@ export function ArchivePlayerProvider({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
-    const player = createAudioPlayer(null, { updateInterval: 250, keepAudioSessionActive: true });
+    // Web: HTMLAudioElement so remote HTTPS MP3s and `ended` → next-track work
+    // in the browser. Native: expo-audio. Both still `replace(src)` then `play()`.
+    const player: ArchiveEngine =
+      Platform.OS === 'web'
+        ? createWebArchivePlayer()
+        : createAudioPlayer(null, { updateInterval: 250, keepAudioSessionActive: true });
     playerRef.current = player;
-    setAudioModeAsync({
-      playsInSilentMode: true,
-      shouldPlayInBackground: true,
-      interruptionMode: 'doNotMix',
-    }).catch(() => {});
+    if (Platform.OS !== 'web') {
+      setAudioModeAsync({
+        playsInSilentMode: true,
+        shouldPlayInBackground: true,
+        interruptionMode: 'doNotMix',
+      }).catch(() => {});
+    }
 
     const sub = player.addListener('playbackStatusUpdate', (status: AudioStatus) => {
       if (typeof status.playing === 'boolean') setPlaying(status.playing);

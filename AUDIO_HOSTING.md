@@ -70,7 +70,7 @@ Track `id` values match `data/catalog.ts`. Optional fields: `lyrics`, `duration`
 In `services/catalog.ts`, set:
 
 ```ts
-export const CATALOG_URL = 'https://media.saidthewhale.com/catalog.json';
+export const CATALOG_URL = 'https://pub-5a1138113129492e9d6f4bd6de978215.r2.dev/catalog.json';
 ```
 
 That's it. The app fetches your catalog on launch and streams everything. If the

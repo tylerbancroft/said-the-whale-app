@@ -4,7 +4,7 @@ import { Catalog, bundledCatalog, mergeCatalog } from '@/data/catalog';
  * Loads the music catalog.
  *
  * ┌─────────────────────────────────────────────────────────────────────────┐
- * │  TYLER: when your audio is hosted, set CATALOG_URL to your catalog.json.   │
+ * │  Cascadia MP3s overlay: CATALOG_URL points at the hosted catalog.json.     │
  * │  The app will then stream your full, up-to-date catalog — and you can add  │
  * │  songs any time by editing that file, with no App Store update.            │
  * └─────────────────────────────────────────────────────────────────────────┘

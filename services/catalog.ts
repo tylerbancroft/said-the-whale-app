@@ -12,6 +12,9 @@ import { Catalog, bundledCatalog, mergeCatalog } from '@/data/catalog';
  * Until then (or if the network fails), it falls back to the bundled catalog,
  * so the app always works. Remote JSON overlays `uri` / `lyrics` / gallery
  * URLs onto the bundled era worlds (covers + track lists stay local).
+ *
+ * A track `uri` is an https MP3/M4A. The player loads it with
+ * `player.replace({ uri: track.uri })` then `player.play()`.
  */
 
 export const CATALOG_URL = ''; // e.g. 'https://media.saidthewhale.com/catalog.json'

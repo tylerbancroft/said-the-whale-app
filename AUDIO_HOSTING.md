@@ -77,6 +77,19 @@ That's it. The app fetches your catalog on launch and streams everything. If the
 URL is ever unreachable, it quietly falls back to the bundled copy so the app
 never breaks.
 
+## How a song URL is played
+
+`catalog.json` sets `tracks[].uri` to an `https://` MP3 (or M4A). The player
+hands that string to expo-audio like this:
+
+```ts
+player.replace({ uri: track.uri });
+player.play();
+```
+
+If `uri` is missing, it plays the three bundled files via `player.replace(track.source)`.
+Tracks with neither stay grey until you host them.
+
 ---
 
 **A developer can do steps 1–3 in an afternoon** — or point me at the repo in a

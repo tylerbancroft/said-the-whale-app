@@ -64,7 +64,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     setTrack(next);
     const player = playerRef.current;
     // A track streams from a remote URL (uri) or plays a bundled asset (source).
-    const audioSource = next.source != null ? next.source : next.uri ? { uri: next.uri } : null;
+    const audioSource = next.uri ? { uri: next.uri } : next.source != null ? next.source : null;
     if (player && audioSource != null) {
       try {
         player.replace(audioSource as Parameters<typeof player.replace>[0]);

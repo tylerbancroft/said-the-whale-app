@@ -1,12 +1,21 @@
 import { createContext, useContext, useState, useEffect, useRef, useCallback, ReactNode } from 'react';
-import { createAudioPlayer, setAudioModeAsync } from 'expo-audio';
-import { CatalogAlbum, CatalogTrack, trackHasAudio } from '@/data/catalog';
+import { createAudioPlayer, setAudioModeAsync, type AudioStatus } from 'expo-audio';
+import {
+  CatalogAlbum,
+  CatalogTrack,
+  trackHasAudio,
+  audioSourceFor,
+  firstPlayableIndex,
+  nextPlayableIndex,
+  prevPlayableIndex,
+} from '@/data/catalog';
 
 /**
- * Player for era worlds: current album + track, a scrubbable elapsed clock.
- * Tracks with a bundled recording or a remote `uri` play via expo-audio;
- * the rest simulate playback (1s ticks, auto-advance) until catalog.json
- * supplies stream URLs.
+ * One expo-audio player for the archive.
+ *
+ * Remote tracks: `player.replace({ uri: track.uri })` then `play()`.
+ * Bundled tracks: `player.replace(track.source)` then `play()`.
+ * `uri` wins when both exist (catalog.json overlay).
  */
 
 export function secondsOf(len: string): number {
@@ -43,127 +52,146 @@ type ArchivePlayerValue = {
 
 const Ctx = createContext<ArchivePlayerValue | undefined>(undefined);
 
-function firstPlayableIndex(album: CatalogAlbum): number {
-  const i = album.tracks.findIndex((t) => !t.unplayable);
-  return i < 0 ? 0 : i;
-}
-
 export function ArchivePlayerProvider({ children }: { children: ReactNode }) {
   const [album, setAlbum] = useState<CatalogAlbum | null>(null);
   const [trackIndex, setTrackIndex] = useState(0);
   const [playing, setPlaying] = useState(false);
   const [elapsed, setElapsed] = useState(0);
+  const [audioDuration, setAudioDuration] = useState(0);
 
   const playerRef = useRef<ReturnType<typeof createAudioPlayer> | null>(null);
-  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const albumRef = useRef<CatalogAlbum | null>(null);
+  const indexRef = useRef(0);
+  const ignoreFinishRef = useRef(false);
+  albumRef.current = album;
+  indexRef.current = trackIndex;
+
   const track = album?.tracks[trackIndex] ?? null;
-  const duration = album && track ? secondsOf(lengthForTrack(track, trackIndex)) : 0;
+  const catalogDuration = album && track ? secondsOf(lengthForTrack(track, trackIndex)) : 0;
+  const duration = audioDuration > 0 ? audioDuration : catalogDuration;
   const durationRef = useRef(duration);
   durationRef.current = duration;
   const isLiveAudio = Boolean(track && trackHasAudio(track));
 
-  useEffect(() => {
-    playerRef.current = createAudioPlayer(null);
-    setAudioModeAsync({ playsInSilentMode: true }).catch(() => {});
-    return () => {
-      if (timerRef.current) clearInterval(timerRef.current);
-      try { playerRef.current?.remove(); } catch {}
-    };
-  }, []);
-
-  const stopTimer = () => {
-    if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; }
-  };
-
-  const advanceRef = useRef<() => void>(() => {});
-
-  const startTimer = useCallback(() => {
-    stopTimer();
-    timerRef.current = setInterval(() => {
-      setElapsed((e) => {
-        if (e + 1 >= durationRef.current) {
-          advanceRef.current();
-          return 0;
-        }
-        return e + 1;
-      });
-    }, 1000);
-  }, []);
-
-  const loadAudio = useCallback((next: CatalogTrack | undefined) => {
+  const loadAudio = useCallback((al: CatalogAlbum, next: CatalogTrack) => {
     const p = playerRef.current;
-    if (!p || !next) return;
+    const src = audioSourceFor(next);
+    if (!p || src == null) return;
+    ignoreFinishRef.current = true;
     try {
-      if (next.uri) {
-        p.replace({ uri: next.uri } as Parameters<typeof p.replace>[0]);
-        p.seekTo(0);
-        p.play();
-      } else if (next.source != null) {
-        p.replace(next.source as Parameters<typeof p.replace>[0]);
-        p.seekTo(0);
-        p.play();
-      } else {
-        p.pause();
-      }
+      p.replace(src);
+      p.play();
+      p.setActiveForLockScreen(true, {
+        title: next.title,
+        artist: 'Said The Whale',
+        albumTitle: al.title,
+      });
     } catch {}
+    setTimeout(() => {
+      ignoreFinishRef.current = false;
+    }, 500);
   }, []);
 
   const playTrack = useCallback((al: CatalogAlbum, index: number) => {
     const tr = al.tracks[index];
-    if (!tr || tr.unplayable) return;
+    if (!tr || !trackHasAudio(tr)) return;
     setAlbum(al);
     setTrackIndex(index);
     setElapsed(0);
+    setAudioDuration(0);
     setPlaying(true);
-    loadAudio(tr);
-    startTimer();
-  }, [loadAudio, startTimer]);
+    loadAudio(al, tr);
+  }, [loadAudio]);
 
-  const playAlbum = useCallback((al: CatalogAlbum) => playTrack(al, firstPlayableIndex(al)), [playTrack]);
+  const playAlbum = useCallback((al: CatalogAlbum) => {
+    const i = firstPlayableIndex(al);
+    if (i < 0) return;
+    playTrack(al, i);
+  }, [playTrack]);
 
   const next = useCallback(() => {
-    setAlbum((al) => {
-      if (!al) return al;
-      setTrackIndex((i) => {
-        let ni = i + 1;
-        while (ni < al.tracks.length && al.tracks[ni].unplayable) ni += 1;
-        if (ni >= al.tracks.length) { setPlaying(false); stopTimer(); return i; }
-        setElapsed(0);
-        loadAudio(al.tracks[ni]);
-        return ni;
-      });
-      return al;
-    });
-  }, [loadAudio]);
-  advanceRef.current = next;
+    const al = albumRef.current;
+    if (!al) return;
+    const ni = nextPlayableIndex(al, indexRef.current);
+    if (ni < 0) {
+      setPlaying(false);
+      try { playerRef.current?.pause(); } catch {}
+      return;
+    }
+    playTrack(al, ni);
+  }, [playTrack]);
+  const nextRef = useRef(next);
+  nextRef.current = next;
 
   const prev = useCallback(() => {
-    if (!album) return;
-    setTrackIndex((i) => {
-      let pi = Math.max(0, i - 1);
-      while (pi > 0 && album.tracks[pi].unplayable) pi -= 1;
+    const al = albumRef.current;
+    if (!al) return;
+    if (elapsed > 3) {
       setElapsed(0);
-      loadAudio(album.tracks[pi]);
-      return pi;
-    });
-  }, [album, loadAudio]);
+      try { playerRef.current?.seekTo(0); } catch {}
+      return;
+    }
+    const pi = prevPlayableIndex(al, indexRef.current);
+    if (pi < 0) {
+      setElapsed(0);
+      try { playerRef.current?.seekTo(0); } catch {}
+      return;
+    }
+    playTrack(al, pi);
+  }, [elapsed, playTrack]);
 
   const toggle = useCallback(() => {
-    if (!album) return;
-    setPlaying((p) => {
-      const nextPlaying = !p;
-      const player = playerRef.current;
-      try { if (nextPlaying) player?.play(); else player?.pause(); } catch {}
-      if (nextPlaying) startTimer(); else stopTimer();
-      return nextPlaying;
-    });
-  }, [album, startTimer]);
+    const player = playerRef.current;
+    const al = albumRef.current;
+    if (!al) return;
+    try {
+      if (player?.playing) {
+        player.pause();
+        setPlaying(false);
+      } else {
+        player?.play();
+        setPlaying(true);
+      }
+    } catch {
+      setPlaying((p) => !p);
+    }
+  }, []);
 
   const seekFraction = useCallback((f: number) => {
     const d = durationRef.current;
+    if (!d) return;
     const t = Math.max(0, Math.min(1, f)) * d;
     setElapsed(t);
     try { playerRef.current?.seekTo(t); } catch {}
+  }, []);
+
+  useEffect(() => {
+    const player = createAudioPlayer(null, { updateInterval: 250, keepAudioSessionActive: true });
+    playerRef.current = player;
+    setAudioModeAsync({
+      playsInSilentMode: true,
+      shouldPlayInBackground: true,
+      interruptionMode: 'doNotMix',
+    }).catch(() => {});
+
+    const sub = player.addListener('playbackStatusUpdate', (status: AudioStatus) => {
+      if (typeof status.playing === 'boolean') setPlaying(status.playing);
+      if (typeof status.currentTime === 'number' && Number.isFinite(status.currentTime)) {
+        setElapsed(status.currentTime);
+      }
+      if (typeof status.duration === 'number' && status.duration > 0) {
+        setAudioDuration(status.duration);
+      }
+      if (status.didJustFinish && !ignoreFinishRef.current) {
+        nextRef.current();
+      }
+    });
+
+    return () => {
+      try { sub.remove(); } catch {}
+      try { player.setActiveForLockScreen(false); } catch {}
+      try { player.remove(); } catch {}
+    };
   }, []);
 
   const value: ArchivePlayerValue = {

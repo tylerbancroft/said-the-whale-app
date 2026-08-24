@@ -23,7 +23,7 @@ export type CatalogTrack = {
   title: string;
   /** Bundled asset (require) — offline fallback for three songs. */
   source?: number;
-  /** Remote stream URL. Empty until catalog.json / hosting is wired. */
+  /** HTTPS stream URL from catalog.json. Player loads this via expo-audio `replace({ uri })`. */
   uri?: string;
   duration?: string;
   membersOnly?: boolean;
@@ -817,15 +817,44 @@ export function playableTracks(catalog: Catalog): { album: CatalogAlbum; track: 
   const out: { album: CatalogAlbum; track: CatalogTrack }[] = [];
   for (const album of catalog.albums) {
     for (const track of album.tracks) {
-      if (track.unplayable) continue;
-      if (track.source != null || track.uri) out.push({ album, track });
+      if (trackHasAudio(track)) out.push({ album, track });
     }
   }
   return out;
 }
 
+/** True when the player can load audio — remote `uri` or bundled `source`. */
 export function trackHasAudio(track: CatalogTrack): boolean {
-  return !track.unplayable && (track.source != null || Boolean(track.uri));
+  return !track.unplayable && (Boolean(track.uri) || track.source != null);
+}
+
+/**
+ * Source object passed to expo-audio `createAudioPlayer` / `player.replace`.
+ * Remote HTTPS wins: `{ uri: "https://…" }`. Else the bundled `require()` handle.
+ */
+export function audioSourceFor(track: CatalogTrack): { uri: string } | number | null {
+  if (track.unplayable) return null;
+  if (track.uri) return { uri: track.uri };
+  if (track.source != null) return track.source;
+  return null;
+}
+
+export function firstPlayableIndex(album: CatalogAlbum): number {
+  return album.tracks.findIndex((t) => trackHasAudio(t));
+}
+
+export function nextPlayableIndex(album: CatalogAlbum, from: number): number {
+  for (let i = from + 1; i < album.tracks.length; i += 1) {
+    if (trackHasAudio(album.tracks[i])) return i;
+  }
+  return -1;
+}
+
+export function prevPlayableIndex(album: CatalogAlbum, from: number): number {
+  for (let i = from - 1; i >= 0; i -= 1) {
+    if (trackHasAudio(album.tracks[i])) return i;
+  }
+  return -1;
 }
 
 export function initialsOf(album: CatalogAlbum): string {
@@ -857,7 +886,7 @@ export function mergeCatalog(remote: Catalog, bundled: Catalog = bundledCatalog)
       tracks: base.tracks.map((bt) => {
         const rt = over.tracks.find((t) => t.id === bt.id);
         if (!rt) return bt;
-        return { ...bt, ...rt, source: bt.source ?? rt.source };
+        return { ...bt, ...rt, source: bt.source ?? rt.source, uri: rt.uri || bt.uri };
       }),
     };
   });

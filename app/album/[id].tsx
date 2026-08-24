@@ -5,7 +5,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AlbumArt } from '@/components/archive/AlbumArt';
 import { EraGallery } from '@/components/era/EraGallery';
 import { EraVideos } from '@/components/era/EraVideoCard';
-import { findAlbum, bundledCatalog } from '@/data/catalog';
+import { findAlbum, bundledCatalog, trackHasAudio, firstPlayableIndex } from '@/data/catalog';
 import { useCatalog } from '@/context/CatalogContext';
 import { useArchivePlayer, lengthForTrack } from '@/context/ArchivePlayerContext';
 import { archive, font } from '@/theme/archive';
@@ -37,10 +37,10 @@ export default function AlbumDetail() {
   const albumTracks = album.tracks.filter((t) => !t.extra);
   const extras = album.tracks.filter((t) => t.extra);
   const galleryPhotos = album.gallery.filter((g) => g.kind === 'photo');
-  const canPlayAlbum = album.tracks.some((t) => !t.unplayable);
+  const canPlayAlbum = firstPlayableIndex(album) >= 0;
 
   const openPlayer = (index: number) => {
-    if (album.tracks[index]?.unplayable) return;
+    if (!trackHasAudio(album.tracks[index])) return;
     player.playTrack(album, index);
     router.push('/player');
   };
@@ -63,7 +63,7 @@ export default function AlbumDetail() {
           {album.desc ? <Text style={styles.desc}>{album.desc}</Text> : null}
           {canPlayAlbum ? (
             <Pressable
-              onPress={() => openPlayer(album.tracks.findIndex((t) => !t.unplayable))}
+              onPress={() => openPlayer(firstPlayableIndex(album))}
               style={({ pressed }) => [styles.playBtn, pressed && { backgroundColor: archive.color.redDark }]}
             >
               <Text style={styles.playBtnText}>▶  Play Album</Text>
@@ -80,7 +80,7 @@ export default function AlbumDetail() {
             {albumTracks.map((tr) => {
               const i = album.tracks.indexOf(tr);
               const current = isCurrent && player.trackIndex === i;
-              const locked = Boolean(tr.unplayable);
+              const locked = !trackHasAudio(tr);
               return (
                 <Pressable
                   key={tr.id}
@@ -107,22 +107,25 @@ export default function AlbumDetail() {
         {extras.length ? (
           <View style={styles.listWrap}>
             <View style={styles.list}>
-              {extras.map((tr) => {
+              {              extras.map((tr) => {
                 const i = album.tracks.indexOf(tr);
                 const current = isCurrent && player.trackIndex === i;
+                const locked = !trackHasAudio(tr);
                 return (
                   <Pressable
                     key={tr.id}
                     onPress={() => openPlayer(i)}
+                    disabled={locked}
                     style={({ pressed }) => [
                       styles.row,
                       current && { backgroundColor: archive.color.rowActive },
-                      pressed && !current && { backgroundColor: archive.color.cream },
+                      pressed && !current && !locked && { backgroundColor: archive.color.cream },
+                      locked && { opacity: 0.55 },
                     ]}
                   >
                     <Text style={styles.num}>+</Text>
                     <Text style={styles.trackTitle}>{tr.title}</Text>
-                    <Text style={styles.len}>{lengthForTrack(tr, i)}</Text>
+                    <Text style={styles.len}>{locked ? '—' : lengthForTrack(tr, i)}</Text>
                   </Pressable>
                 );
               })}

@@ -5,6 +5,7 @@ import { useRouter } from 'expo-router';
 
 import { AlbumArt } from '@/components/archive/AlbumArt';
 import { useArchivePlayer, lengthForTrack, fmt } from '@/context/ArchivePlayerContext';
+import { trackHasAudio } from '@/data/catalog';
 import { archive, font } from '@/theme/archive';
 
 /** Screen 3 — full-screen player overlay (cream). */
@@ -36,7 +37,7 @@ export default function Player() {
         <Pressable onPress={() => router.back()} hitSlop={8} style={styles.headerSide}>
           <Text style={styles.close}>↓ Close</Text>
         </Pressable>
-        <Text style={styles.nowPlaying}>{p.isLiveAudio ? 'Now Playing' : 'Inside this world'}</Text>
+        <Text style={styles.nowPlaying}>Now Playing</Text>
         <View style={styles.headerSide} />
       </View>
 
@@ -45,9 +46,6 @@ export default function Player() {
 
         <Text style={styles.title}>{p.title}</Text>
         <Text style={styles.album}>{album.title} · {album.year}</Text>
-        {!p.isLiveAudio ? (
-          <Text style={styles.fallback}>Bundled fallback until the stream URL is hosted.</Text>
-        ) : null}
 
         <View style={styles.scrubWrap}>
           <Pressable onPress={onSeek} onLayout={(e) => (barWidth.current = e.nativeEvent.layout.width)} style={styles.scrubHit}>
@@ -80,18 +78,21 @@ export default function Player() {
         <View style={styles.queueWrap}>
           <Text style={styles.queueEyebrow}>Up Next</Text>
           <View style={styles.queue}>
-            {album.tracks.map((t, i) => (
+            {album.tracks.map((t, i) => {
+              const locked = !trackHasAudio(t);
+              return (
               <Pressable
                 key={t.id}
                 onPress={() => p.playTrack(album, i)}
-                disabled={Boolean(t.unplayable)}
-                style={({ pressed }) => [styles.qRow, pressed && { backgroundColor: archive.color.cream }, t.unplayable && { opacity: 0.45 }]}
+                disabled={locked}
+                style={({ pressed }) => [styles.qRow, pressed && { backgroundColor: archive.color.cream }, locked && { opacity: 0.45 }]}
               >
                 <Text style={styles.qNum}>{i + 1}</Text>
                 <Text style={[styles.qTitle, i === p.trackIndex && { color: archive.color.red, fontWeight: '600' }]}>{t.title}</Text>
-                <Text style={styles.qLen}>{t.unplayable ? '—' : lengthForTrack(t, i)}</Text>
+                <Text style={styles.qLen}>{locked ? '—' : lengthForTrack(t, i)}</Text>
               </Pressable>
-            ))}
+              );
+            })}
           </View>
         </View>
       </ScrollView>
@@ -109,7 +110,6 @@ const styles = StyleSheet.create({
   body: { alignItems: 'center', paddingHorizontal: 30, paddingVertical: 30 },
   title: { fontFamily: font.sans, fontSize: 20, fontWeight: '600', letterSpacing: 0.5, marginTop: 26, textAlign: 'center', color: archive.color.ink },
   album: { fontFamily: font.sans, fontSize: 11.5, letterSpacing: 3, textTransform: 'uppercase', color: archive.color.warmGrey, marginTop: 6 },
-  fallback: { fontFamily: font.script, fontSize: 14, color: archive.color.warmGrey, marginTop: 8, textAlign: 'center' },
 
   scrubWrap: { width: '100%', maxWidth: 300, marginTop: 28 },
   scrubHit: { height: 22, justifyContent: 'center' },

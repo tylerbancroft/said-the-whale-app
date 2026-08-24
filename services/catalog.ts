@@ -17,7 +17,7 @@ import { Catalog, bundledCatalog, mergeCatalog } from '@/data/catalog';
  * `player.replace({ uri: track.uri })` then `player.play()`.
  */
 
-export const CATALOG_URL = ''; // e.g. 'https://media.saidthewhale.com/catalog.json'
+export const CATALOG_URL = 'https://pub-5a1138113129492e9d6f4bd6de978215.r2.dev/catalog.json';
 
 export async function loadCatalog(): Promise<Catalog> {
   if (CATALOG_URL) {

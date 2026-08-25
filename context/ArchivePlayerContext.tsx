@@ -1,43 +1,56 @@
 import { createContext, useContext, useState, useEffect, useRef, useCallback, ReactNode } from 'react';
-import { createAudioPlayer, setAudioModeAsync } from 'expo-audio';
-import { ALBUMS, ArchiveAlbum, TRACK_LENGTHS } from '@/data/redesign';
-import { nativeTracks } from '@/data/tracks';
+import { Platform } from 'react-native';
+import { createAudioPlayer, setAudioModeAsync, type AudioStatus } from 'expo-audio';
+import {
+  CatalogAlbum,
+  CatalogTrack,
+  trackHasAudio,
+  audioSourceFor,
+  firstPlayableIndex,
+  nextPlayableIndex,
+  prevPlayableIndex,
+} from '@/data/catalog';
+import { createWebArchivePlayer, type WebArchivePlayer } from '@/context/webAudioPlayer';
+
+type ArchiveEngine = ReturnType<typeof createAudioPlayer> | WebArchivePlayer;
 
 /**
- * Player state for the "Boutique Archive" redesign: current album + track,
- * a scrubbable elapsed clock, and a derived queue. Tracks with a bundled
- * recording ("I Love You", "Lucky") play for real via expo-audio; the rest
- * simulate playback (1s ticks, auto-advance) exactly like the design prototype
- * until the full catalog streams.
+ * Archive player.
+ *
+ * Remote tracks: `player.replace({ uri: track.uri })` then `play()`.
+ * Bundled tracks: `player.replace(track.source)` then `play()`.
+ * `uri` wins when both exist (catalog.json overlay).
+ * Web uses a small HTMLAudioElement path; native uses expo-audio.
  */
 
-// Bundled audio by (loose) track-title match.
-const SOURCE_BY_TITLE: Record<string, number> = {};
-for (const t of nativeTracks) SOURCE_BY_TITLE[t.title.toLowerCase()] = t.source;
-
-export function lengthForTrack(trackIndex: number): string {
-  return TRACK_LENGTHS[trackIndex % TRACK_LENGTHS.length];
-}
 export function secondsOf(len: string): number {
   const [m, s] = len.split(':').map(Number);
-  return m * 60 + s;
+  return (m || 0) * 60 + (s || 0);
 }
 export function fmt(sec: number): string {
   const s = Math.max(0, Math.floor(sec));
   return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
 }
+export function lengthForTrack(track: CatalogTrack, index: number): string {
+  if (track.duration) return track.duration;
+  const fallback = ['3:12', '4:05', '2:58', '3:41', '4:22', '3:34', '3:07', '4:48'];
+  return fallback[index % fallback.length];
+}
 
 type ArchivePlayerValue = {
-  album: ArchiveAlbum | null;
+  album: CatalogAlbum | null;
+  track: CatalogTrack | null;
   trackIndex: number;
   title: string | null;
   playing: boolean;
   elapsed: number;
   duration: number;
   hasTrack: boolean;
-  playAlbum: (album: ArchiveAlbum) => void;
-  playTrack: (album: ArchiveAlbum, index: number) => void;
+  isLiveAudio: boolean;
+  playAlbum: (album: CatalogAlbum) => void;
+  playTrack: (album: CatalogAlbum, index: number) => void;
   toggle: () => void;
+  pause: () => void;
   seekFraction: (f: number) => void;
   next: () => void;
   prev: () => void;
@@ -46,126 +59,175 @@ type ArchivePlayerValue = {
 const Ctx = createContext<ArchivePlayerValue | undefined>(undefined);
 
 export function ArchivePlayerProvider({ children }: { children: ReactNode }) {
-  const [album, setAlbum] = useState<ArchiveAlbum | null>(null);
+  const [album, setAlbum] = useState<CatalogAlbum | null>(null);
   const [trackIndex, setTrackIndex] = useState(0);
   const [playing, setPlaying] = useState(false);
   const [elapsed, setElapsed] = useState(0);
+  const [audioDuration, setAudioDuration] = useState(0);
 
-  const playerRef = useRef<ReturnType<typeof createAudioPlayer> | null>(null);
-  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const duration = album ? secondsOf(lengthForTrack(trackIndex)) : 0;
+  const playerRef = useRef<ArchiveEngine | null>(null);
+  const albumRef = useRef<CatalogAlbum | null>(null);
+  const indexRef = useRef(0);
+  const ignoreFinishRef = useRef(false);
+  albumRef.current = album;
+  indexRef.current = trackIndex;
+
+  const track = album?.tracks[trackIndex] ?? null;
+  const catalogDuration = album && track ? secondsOf(lengthForTrack(track, trackIndex)) : 0;
+  const duration = audioDuration > 0 ? audioDuration : catalogDuration;
   const durationRef = useRef(duration);
   durationRef.current = duration;
+  const isLiveAudio = Boolean(track && trackHasAudio(track));
 
-  useEffect(() => {
-    playerRef.current = createAudioPlayer(null);
-    setAudioModeAsync({ playsInSilentMode: true }).catch(() => {});
-    return () => {
-      if (timerRef.current) clearInterval(timerRef.current);
-      try { playerRef.current?.remove(); } catch {}
-    };
-  }, []);
-
-  const stopTimer = () => {
-    if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; }
-  };
-
-  // advanceRef lets the interval call the latest next() without re-subscribing.
-  const advanceRef = useRef<() => void>(() => {});
-
-  const startTimer = useCallback(() => {
-    stopTimer();
-    timerRef.current = setInterval(() => {
-      setElapsed((e) => {
-        if (e + 1 >= durationRef.current) {
-          advanceRef.current();
-          return 0;
-        }
-        return e + 1;
-      });
-    }, 1000);
-  }, []);
-
-  const loadReal = useCallback((title: string) => {
-    const src = SOURCE_BY_TITLE[title.toLowerCase()];
+  const loadAudio = useCallback((al: CatalogAlbum, next: CatalogTrack) => {
     const p = playerRef.current;
-    if (!p) return;
+    const src = audioSourceFor(next);
+    if (!p || src == null) return;
+    ignoreFinishRef.current = true;
     try {
-      if (src != null) {
-        p.replace(src as Parameters<typeof p.replace>[0]);
-        p.seekTo(0);
-        p.play();
-      } else {
-        p.pause();
-      }
+      p.replace(src);
+      p.play();
+      p.setActiveForLockScreen(true, {
+        title: next.title,
+        artist: 'Said The Whale',
+        albumTitle: al.title,
+      });
     } catch {}
+    setTimeout(() => {
+      ignoreFinishRef.current = false;
+    }, 500);
   }, []);
 
-  const playTrack = useCallback((al: ArchiveAlbum, index: number) => {
+  const playTrack = useCallback((al: CatalogAlbum, index: number) => {
+    const tr = al.tracks[index];
+    if (!tr || !trackHasAudio(tr)) return;
     setAlbum(al);
     setTrackIndex(index);
     setElapsed(0);
+    setAudioDuration(0);
     setPlaying(true);
-    loadReal(al.tracks[index]);
-    startTimer();
-  }, [loadReal, startTimer]);
+    loadAudio(al, tr);
+  }, [loadAudio]);
 
-  const playAlbum = useCallback((al: ArchiveAlbum) => playTrack(al, 0), [playTrack]);
+  const playAlbum = useCallback((al: CatalogAlbum) => {
+    const i = firstPlayableIndex(al);
+    if (i < 0) return;
+    playTrack(al, i);
+  }, [playTrack]);
 
   const next = useCallback(() => {
-    setAlbum((al) => {
-      if (!al) return al;
-      setTrackIndex((i) => {
-        const ni = i + 1;
-        if (ni >= al.tracks.length) { setPlaying(false); stopTimer(); return i; }
-        setElapsed(0);
-        loadReal(al.tracks[ni]);
-        return ni;
-      });
-      return al;
-    });
-  }, [loadReal]);
-  advanceRef.current = next;
+    const al = albumRef.current;
+    if (!al) return;
+    const ni = nextPlayableIndex(al, indexRef.current);
+    if (ni < 0) {
+      setPlaying(false);
+      try { playerRef.current?.pause(); } catch {}
+      return;
+    }
+    playTrack(al, ni);
+  }, [playTrack]);
+  const nextRef = useRef(next);
+  nextRef.current = next;
 
   const prev = useCallback(() => {
-    if (!album) return;
-    setTrackIndex((i) => {
-      const pi = Math.max(0, i - 1);
+    const al = albumRef.current;
+    if (!al) return;
+    if (elapsed > 3) {
       setElapsed(0);
-      loadReal(album.tracks[pi]);
-      return pi;
-    });
-  }, [album, loadReal]);
+      try { playerRef.current?.seekTo(0); } catch {}
+      return;
+    }
+    const pi = prevPlayableIndex(al, indexRef.current);
+    if (pi < 0) {
+      setElapsed(0);
+      try { playerRef.current?.seekTo(0); } catch {}
+      return;
+    }
+    playTrack(al, pi);
+  }, [elapsed, playTrack]);
+
+  const pause = useCallback(() => {
+    try {
+      playerRef.current?.pause();
+      setPlaying(false);
+    } catch {}
+  }, []);
 
   const toggle = useCallback(() => {
-    if (!album) return;
-    setPlaying((p) => {
-      const nextPlaying = !p;
-      const player = playerRef.current;
-      try { if (nextPlaying) player?.play(); else player?.pause(); } catch {}
-      if (nextPlaying) startTimer(); else stopTimer();
-      return nextPlaying;
-    });
-  }, [album, startTimer]);
+    const player = playerRef.current;
+    const al = albumRef.current;
+    if (!al) return;
+    try {
+      if (player?.playing) {
+        player.pause();
+        setPlaying(false);
+      } else {
+        player?.play();
+        setPlaying(true);
+      }
+    } catch {
+      setPlaying((p) => !p);
+    }
+  }, []);
 
   const seekFraction = useCallback((f: number) => {
     const d = durationRef.current;
+    if (!d) return;
     const t = Math.max(0, Math.min(1, f)) * d;
     setElapsed(t);
     try { playerRef.current?.seekTo(t); } catch {}
   }, []);
 
+  useEffect(() => {
+    // Web: HTMLAudioElement so remote HTTPS MP3s and `ended` → next-track work
+    // in the browser. Native: expo-audio. Both still `replace(src)` then `play()`.
+    const player: ArchiveEngine =
+      Platform.OS === 'web'
+        ? createWebArchivePlayer()
+        : createAudioPlayer(null, { updateInterval: 250, keepAudioSessionActive: true });
+    playerRef.current = player;
+    if (Platform.OS !== 'web') {
+      setAudioModeAsync({
+        playsInSilentMode: true,
+        shouldPlayInBackground: true,
+        interruptionMode: 'doNotMix',
+      }).catch(() => {});
+    }
+
+    const sub = player.addListener('playbackStatusUpdate', (status: AudioStatus) => {
+      if (typeof status.playing === 'boolean') setPlaying(status.playing);
+      if (typeof status.currentTime === 'number' && Number.isFinite(status.currentTime)) {
+        setElapsed(status.currentTime);
+      }
+      if (typeof status.duration === 'number' && status.duration > 0) {
+        setAudioDuration(status.duration);
+      }
+      if (status.didJustFinish && !ignoreFinishRef.current) {
+        nextRef.current();
+      }
+    });
+
+    return () => {
+      try { sub.remove(); } catch {}
+      try { player.setActiveForLockScreen(false); } catch {}
+      try { player.remove(); } catch {}
+    };
+  }, []);
+
   const value: ArchivePlayerValue = {
     album,
+    track,
     trackIndex,
-    title: album ? album.tracks[trackIndex] : null,
+    title: track?.title ?? null,
     playing,
     elapsed,
     duration,
     hasTrack: album != null,
+    isLiveAudio,
     playAlbum,
     playTrack,
     toggle,
+    pause,
     seekFraction,
     next,
     prev,
@@ -179,6 +241,3 @@ export function useArchivePlayer() {
   if (!ctx) throw new Error('useArchivePlayer must be used within an ArchivePlayerProvider');
   return ctx;
 }
-
-// Convenience for screens that want the album objects.
-export { ALBUMS };

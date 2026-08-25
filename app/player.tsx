@@ -4,7 +4,9 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 
 import { AlbumArt } from '@/components/archive/AlbumArt';
+import { PlayCircle } from '@/components/archive/PlayControl';
 import { useArchivePlayer, lengthForTrack, fmt } from '@/context/ArchivePlayerContext';
+import { trackHasAudio } from '@/data/catalog';
 import { archive, font } from '@/theme/archive';
 
 /** Screen 3 — full-screen player overlay (cream). */
@@ -60,27 +62,40 @@ export default function Player() {
         </View>
 
         <View style={styles.controls}>
-          <Pressable onPress={p.prev} hitSlop={10} style={styles.ctrlBtn}><Text style={styles.ctrlGlyph}>⏮</Text></Pressable>
-          <Pressable onPress={p.toggle} style={styles.playBtn}>
-            <Text style={styles.playGlyph}>{p.playing ? '❚❚' : '▶'}</Text>
+          <Pressable onPress={p.prev} hitSlop={8} style={styles.ctrlBtn} accessibilityLabel="Previous">
+            <Text style={styles.ctrlGlyph}>⏮</Text>
           </Pressable>
-          <Pressable onPress={p.next} hitSlop={10} style={styles.ctrlBtn}><Text style={styles.ctrlGlyph}>⏭</Text></Pressable>
+          <PlayCircle playing={p.playing} onPress={p.toggle} size={76} />
+          <Pressable onPress={p.next} hitSlop={8} style={styles.ctrlBtn} accessibilityLabel="Next">
+            <Text style={styles.ctrlGlyph}>⏭</Text>
+          </Pressable>
         </View>
+
+        {p.track?.lyrics ? (
+          <View style={styles.lyrics}>
+            <Text style={styles.queueEyebrow}>Lyrics</Text>
+            <Text style={styles.lyricBody}>{p.track.lyrics}</Text>
+          </View>
+        ) : null}
 
         <View style={styles.queueWrap}>
           <Text style={styles.queueEyebrow}>Up Next</Text>
           <View style={styles.queue}>
-            {album.tracks.map((t, i) => (
+            {album.tracks.map((t, i) => {
+              const locked = !trackHasAudio(t);
+              return (
               <Pressable
-                key={i}
+                key={t.id}
                 onPress={() => p.playTrack(album, i)}
-                style={({ pressed }) => [styles.qRow, pressed && { backgroundColor: archive.color.cream }]}
+                disabled={locked}
+                style={({ pressed }) => [styles.qRow, pressed && { backgroundColor: archive.color.cream }, locked && { opacity: 0.45 }]}
               >
                 <Text style={styles.qNum}>{i + 1}</Text>
-                <Text style={[styles.qTitle, i === p.trackIndex && { color: archive.color.red, fontWeight: '600' }]}>{t}</Text>
-                <Text style={styles.qLen}>{lengthForTrack(i)}</Text>
+                <Text style={[styles.qTitle, i === p.trackIndex && { color: archive.color.red, fontWeight: '600' }]}>{t.title}</Text>
+                <Text style={styles.qLen}>{locked ? '—' : lengthForTrack(t, i)}</Text>
               </Pressable>
-            ))}
+              );
+            })}
           </View>
         </View>
       </ScrollView>
@@ -100,23 +115,24 @@ const styles = StyleSheet.create({
   album: { fontFamily: font.sans, fontSize: 11.5, letterSpacing: 3, textTransform: 'uppercase', color: archive.color.warmGrey, marginTop: 6 },
 
   scrubWrap: { width: '100%', maxWidth: 300, marginTop: 28 },
-  scrubHit: { height: 22, justifyContent: 'center' },
-  track: { height: 2, backgroundColor: archive.color.line },
-  trackFill: { position: 'absolute', left: 0, top: 0, height: 2, backgroundColor: archive.color.red },
-  dot: { position: 'absolute', top: -4, width: 10, height: 10, marginLeft: -5, borderRadius: 5, backgroundColor: archive.color.red },
+  scrubHit: { height: 32, justifyContent: 'center' },
+  track: { height: 3, backgroundColor: archive.color.line },
+  trackFill: { position: 'absolute', left: 0, top: 0, height: 3, backgroundColor: archive.color.red },
+  dot: { position: 'absolute', top: -5, width: 12, height: 12, marginLeft: -6, borderRadius: 6, backgroundColor: archive.color.red },
   times: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 4 },
   time: { fontFamily: font.sans, fontSize: 10.5, letterSpacing: 1, color: archive.color.warmGrey },
 
-  controls: { flexDirection: 'row', alignItems: 'center', gap: 28, marginTop: 22 },
-  ctrlBtn: { padding: 8 },
-  ctrlGlyph: { fontSize: 18, color: archive.color.ink },
-  playBtn: { width: 64, height: 64, borderRadius: 32, backgroundColor: archive.color.red, alignItems: 'center', justifyContent: 'center' },
-  playGlyph: { fontSize: 18, color: archive.color.paper },
+  controls: { flexDirection: 'row', alignItems: 'center', gap: 24, marginTop: 26 },
+  ctrlBtn: { width: 48, height: 48, alignItems: 'center', justifyContent: 'center' },
+  ctrlGlyph: { fontSize: 22, color: archive.color.ink },
+
+  lyrics: { width: '100%', marginTop: 28 },
+  lyricBody: { fontFamily: font.sans, fontSize: 14, lineHeight: 24, color: archive.color.body, textAlign: 'center' },
 
   queueWrap: { width: '100%', marginTop: 34 },
   queueEyebrow: { fontFamily: font.sans, fontSize: 10.5, letterSpacing: 4, textTransform: 'uppercase', color: archive.color.warmGrey, textAlign: 'center', marginBottom: 10 },
   queue: { borderWidth: 1, borderColor: archive.color.line, backgroundColor: archive.color.paper },
-  qRow: { flexDirection: 'row', alignItems: 'center', gap: 14, borderBottomWidth: 1, borderBottomColor: archive.color.rowBorder, paddingVertical: 12, paddingHorizontal: 16 },
+  qRow: { flexDirection: 'row', alignItems: 'center', gap: 14, borderBottomWidth: 1, borderBottomColor: archive.color.rowBorder, minHeight: 48, paddingVertical: 14, paddingHorizontal: 16 },
   qNum: { width: 20, fontSize: 11, textAlign: 'right', color: archive.color.warmGrey, fontFamily: font.sans },
   qTitle: { flex: 1, fontSize: 13, letterSpacing: 0.3, color: archive.color.ink, fontFamily: font.sans },
   qLen: { fontSize: 11, color: archive.color.warmGrey, fontFamily: font.sans },

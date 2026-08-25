@@ -1,68 +1,7 @@
 /**
- * Content for the "Boutique Archive" redesign, transcribed from the design
- * prototype (design/stw-redesign/Said The Whale App.dc.html).
- *
- * Album titles/years/descriptions are the real discography. Track lists, tour
- * dates, news posts and chat messages are the designer's placeholder content —
- * wire to real data before shipping (see issue #1).
+ * Content for Chat, Tour, and News — still the prototype placeholders
+ * (see issue #1). Album / era-world data lives in data/catalog.ts.
  */
-import { archive } from '@/theme/archive';
-
-export type ArchiveAlbum = {
-  id: number;
-  title: string;
-  short: string;
-  year: string;
-  color: string;
-  dark: boolean; // dark artwork → light rings/initials
-  desc: string;
-  tracks: string[];
-};
-
-export const ALBUMS: ArchiveAlbum[] = [
-  { id: 0, title: 'Howe Sounds / Taking Abalonia', short: 'Howe Sounds', year: '2007', color: '#7C9C8F', dark: false,
-    desc: 'Where it all began — a double debut of salt-air folk songs written between the mountains and the sea.',
-    tracks: ['This City’s a Mess', 'The Real Old Singing Cowboy', 'Curse of the Currents', 'False Creek Change', 'Fixin’ to Leave', 'Goodnight Moon'] },
-  { id: 1, title: 'Islands Disappear', short: 'Islands Disappear', year: '2009', color: '#8FA8B4', dark: false,
-    desc: 'A love letter to the west coast — ferries, emerald lakes, and the slow ache of leaving home.',
-    tracks: ['Camilo (The Magician)', 'Emerald Lake, AB', 'Black Day in December', 'The Light Is You', 'A Cold Night Close to the End', 'Islands Disappear'] },
-  { id: 2, title: 'Little Mountain', short: 'Little Mountain', year: '2012', color: '#C4614E', dark: true,
-    desc: 'Named for the neighbourhood that raised it. Bigger rooms, brighter choruses, the same beating heart.',
-    tracks: ['Loveless', 'Heavy Ceiling', 'Big Sky, MT', 'Jesse, AR', 'We Are 1980', 'O Alexandra'] },
-  { id: 3, title: 'hawaiii', short: 'hawaiii', year: '2013', color: '#D9A03F', dark: true,
-    desc: 'Three i’s, one summer. Sun-bleached pop songs with sand still in their shoes.',
-    tracks: ['I Love You', 'Mother', 'Resolutions', 'Safe to Say', 'Wake Up', 'Ambition'] },
-  { id: 4, title: 'As Long as Your Eyes Are Wide', short: 'As Long as Your Eyes…', year: '2017', color: '#A79A87', dark: false,
-    desc: 'A record about staying open — grief and wonder held carefully in the same two hands.',
-    tracks: ['Step Into the Darkness', 'I Will Follow You', 'Confidence', 'Nothing Lasts', 'Emily Rose', 'Lucky'] },
-  { id: 5, title: 'Cascadia', short: 'Cascadia', year: '2019', color: '#53707E', dark: true,
-    desc: 'An atlas of the Pacific Northwest — rain on cedar, ferry horns, and songs for the long grey winter.',
-    tracks: ['UnAmerican', 'Old Fashioned', 'Gambier Island Green', 'Record Shop', 'Wake Up', 'Level Best'] },
-  { id: 6, title: 'Dandelion', short: 'Dandelion', year: '2021', color: '#EFDCA8', dark: true,
-    desc: 'Written apart, stitched together. Small bright songs that grew up through the cracks of a strange year.',
-    tracks: ['Everything She Touches', 'Honey Lungs', 'Show Me Everything', 'Wildflowers', 'Little Wolf', 'Dandelion'] },
-  { id: 7, title: 'Nothing Special', short: 'Nothing Special', year: '2023', color: '#B98B6E', dark: true,
-    desc: 'The newest chapter — plain-spoken, warm, and quietly certain that ordinary days are the whole point.',
-    tracks: ['Nothing Special', 'Small Town', 'More Than This', 'Front Porch Light', 'Slow News Day', 'Sea Glass'] },
-];
-
-// Placeholder track durations (index-matched, cycled) — replace with real metadata.
-export const TRACK_LENGTHS = ['3:12', '4:05', '2:58', '3:41', '4:22', '3:34', '3:07', '4:48'];
-
-/** Two-letter monogram for album artwork. */
-export function initialsOf(a: ArchiveAlbum): string {
-  const words = a.short.replace(/[^A-Za-z ]/g, '').trim().split(/\s+/);
-  const raw = words.length >= 2 ? words[0][0] + words[1][0] : a.short.slice(0, 2);
-  return raw.toUpperCase();
-}
-
-/** Ring/initials colors drawn on the flat-color album art. */
-export function artInk(a: ArchiveAlbum) {
-  return {
-    line: a.dark ? 'rgba(255,255,255,0.32)' : 'rgba(70,55,43,0.38)',
-    ink: a.dark ? 'rgba(251,246,234,0.94)' : archive.color.ink,
-  };
-}
 
 export type Show = { month: string; day: string; city: string; venue: string; color: string; dark: boolean };
 export const SHOWS: Show[] = [

@@ -3,6 +3,10 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { POSTS } from '@/data/redesign';
 import { archive, font } from '@/theme/archive';
 
+export async function generateStaticParams(): Promise<{ id: string }[]> {
+  return POSTS.map((_, i) => ({ id: String(i) }));
+}
+
 /** Screen 8 — News article: a cream reading page. */
 export default function Article() {
   const { id } = useLocalSearchParams<{ id: string }>();

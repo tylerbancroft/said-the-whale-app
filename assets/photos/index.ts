@@ -6,6 +6,14 @@
  * production release to keep the app bundle small (tracked in issue #1).
  */
 export const PHOTOS = [
+  require('./cascadia/VH_STW_JUNE2018_0260.jpg'),
+  require('./cascadia/VH_STW_JUNE2018_0150.jpg'),
+  require('./cascadia/VH_STW_JUNE2018_0188.jpg'),
+  require('./cascadia/VH_STW_FILM_JUNE2018_0167.jpg'),
+  require('./cascadia/VH_STW_JUNE2018_0082.jpg'),
+  require('./cascadia/VH_STW_JUNE2018_0313.jpg'),
+  require('./cascadia/VH_STW_FILM_JUNE2018_0008.jpg'),
+  require('./cascadia/VH_STW_JUNE2018_0019.jpg'),
   require('./IMG_7223-CROP.jpg'),
   require('./IMG_7415.jpg'),
   require('./IMG_7579.jpg'),

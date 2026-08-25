@@ -9,15 +9,14 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 
 import { useAuth } from '@/context/AuthContext';
-import { colors, spacing, radius, serif, grad } from '@/theme/tokens';
+import { archive, font } from '@/theme/archive';
 
 /**
- * One-time welcome. Fan enters the code from their Patreon welcome email;
- * we remember it forever, so this screen is seen exactly once.
+ * One-time welcome in the boutique-archive look. Access code WHALE.
+ * Memberships stay off-app — this screen never sells a subscription.
  */
 export default function Onboarding() {
   const { redeem } = useAuth();
@@ -41,94 +40,96 @@ export default function Onboarding() {
   }
 
   return (
-    <LinearGradient colors={grad.night} style={styles.fill}>
-      <KeyboardAvoidingView
-        style={styles.fill}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      >
-        <View style={styles.container}>
-          <View style={styles.header}>
-            <Text style={styles.whale}>🐋</Text>
-            <Text style={styles.eyebrow}>SAID THE WHALE</Text>
-          </View>
+    <KeyboardAvoidingView
+      style={styles.fill}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+    >
+      <View style={styles.container}>
+        <Text style={styles.wordmark}>Said the Whale</Text>
+        <Text style={styles.tag}>est. Vancouver, B.C. — 2007</Text>
+        <View style={styles.rule} />
 
-          <Text style={styles.title}>Welcome to the Pod</Text>
-          <Text style={styles.subtitle}>
-            Enter the access code from your welcome email to unlock the music, the community, and
-            everything else. You’ll only do this once.
-          </Text>
+        <Text style={styles.title}>The Record Archive</Text>
+        <Text style={styles.subtitle}>
+          A quiet room for the records, the photographs, and the people who already know the songs.
+          Enter the access code once. We’ll remember you.
+        </Text>
 
-          <View style={styles.field}>
-            <TextInput
-              value={code}
-              onChangeText={(t) => {
-                setCode(t);
-                if (error) setError(null);
-              }}
-              placeholder="Your access code"
-              placeholderTextColor={colors.faint}
-              autoCapitalize="characters"
-              autoCorrect={false}
-              style={styles.input}
-              onSubmitEditing={onRedeem}
-              returnKeyType="go"
-            />
-          </View>
+        <TextInput
+          value={code}
+          onChangeText={(t) => {
+            setCode(t);
+            if (error) setError(null);
+          }}
+          placeholder="Access code"
+          placeholderTextColor={archive.color.warmGrey}
+          autoCapitalize="characters"
+          autoCorrect={false}
+          style={styles.input}
+          onSubmitEditing={onRedeem}
+          returnKeyType="go"
+        />
 
-          {error ? <Text style={styles.error}>{error}</Text> : null}
+        {error ? <Text style={styles.error}>{error}</Text> : null}
 
-          <Pressable
-            onPress={onRedeem}
-            disabled={loading}
-            style={({ pressed }) => [styles.button, { opacity: pressed || loading ? 0.85 : 1 }]}
-          >
-            {loading ? (
-              <ActivityIndicator color={colors.accentInk} />
-            ) : (
-              <Text style={styles.buttonText}>Unlock</Text>
-            )}
-          </Pressable>
+        <Pressable
+          onPress={onRedeem}
+          disabled={loading}
+          style={({ pressed }) => [styles.button, { opacity: pressed || loading ? 0.85 : 1 }]}
+        >
+          {loading ? (
+            <ActivityIndicator color={archive.color.paper} />
+          ) : (
+            <Text style={styles.buttonText}>Enter the archive</Text>
+          )}
+        </Pressable>
 
-          <Text style={styles.hint}>
-            Supporting us on Patreon? Your code is in the welcome email. (Demo: try{' '}
-            <Text style={styles.hintCode}>WHALE</Text>)
-          </Text>
-        </View>
-      </KeyboardAvoidingView>
-    </LinearGradient>
+        <Text style={styles.hint}>
+          The code is <Text style={styles.hintCode}>WHALE</Text>
+        </Text>
+      </View>
+    </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
-  fill: { flex: 1 },
-  container: { flex: 1, justifyContent: 'center', paddingHorizontal: spacing.xl, maxWidth: 480, width: '100%', alignSelf: 'center' },
-  header: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginBottom: spacing.xxl },
-  whale: { fontSize: 26 },
-  eyebrow: { color: colors.foam, fontWeight: '800', fontSize: 13, letterSpacing: 2 },
-  title: { color: colors.ink, fontFamily: serif, fontSize: 34, marginBottom: spacing.md },
-  subtitle: { color: colors.muted, fontSize: 15, lineHeight: 22, marginBottom: spacing.xxl },
-  field: { marginBottom: spacing.md },
-  input: {
-    backgroundColor: 'rgba(255,255,255,0.06)',
-    borderWidth: 1,
-    borderColor: colors.line,
-    borderRadius: radius.lg,
-    paddingHorizontal: spacing.lg,
-    paddingVertical: 16,
-    color: colors.ink,
-    fontSize: 17,
-    letterSpacing: 2,
+  fill: { flex: 1, backgroundColor: archive.color.cream },
+  container: { flex: 1, justifyContent: 'center', paddingHorizontal: 28, maxWidth: 480, width: '100%', alignSelf: 'center' },
+  wordmark: {
+    fontFamily: font.sans,
+    fontSize: 15,
     fontWeight: '600',
+    letterSpacing: 5,
+    textTransform: 'uppercase',
+    color: archive.color.ink,
+    textAlign: 'center',
   },
-  error: { color: '#FF8A73', fontSize: 13, marginBottom: spacing.sm, marginLeft: spacing.xs },
+  tag: { fontFamily: font.script, fontSize: 14, color: archive.color.warmGrey, textAlign: 'center', marginTop: 4 },
+  rule: { width: 36, height: 1, backgroundColor: archive.color.red, alignSelf: 'center', marginVertical: 22 },
+  title: { fontFamily: font.sans, fontSize: 26, fontWeight: '500', letterSpacing: 0.5, color: archive.color.ink, textAlign: 'center', marginBottom: 12 },
+  subtitle: { fontFamily: font.sans, fontSize: 14.5, lineHeight: 23, color: archive.color.bodySoft, textAlign: 'center', marginBottom: 28 },
+  input: {
+    backgroundColor: archive.color.paper,
+    borderWidth: 1,
+    borderColor: archive.color.line,
+    paddingHorizontal: 18,
+    paddingVertical: 16,
+    color: archive.color.ink,
+    fontSize: 17,
+    letterSpacing: 3,
+    fontWeight: '600',
+    textAlign: 'center',
+    fontFamily: font.sans,
+  },
+  error: { color: archive.color.red, fontSize: 13, marginTop: 10, textAlign: 'center', fontFamily: font.sans },
   button: {
-    backgroundColor: colors.accent,
-    borderRadius: radius.lg,
+    backgroundColor: archive.color.red,
+    borderRadius: 999,
     paddingVertical: 16,
     alignItems: 'center',
-    marginTop: spacing.sm,
+    marginTop: 18,
   },
-  buttonText: { color: colors.accentInk, fontWeight: '800', fontSize: 16 },
-  hint: { color: colors.faint, fontSize: 12.5, textAlign: 'center', marginTop: spacing.xl, lineHeight: 18 },
-  hintCode: { color: colors.gold, fontWeight: '800' },
+  buttonText: { color: archive.color.paper, fontWeight: '600', fontSize: 12, letterSpacing: 3, textTransform: 'uppercase', fontFamily: font.sans },
+  hint: { color: archive.color.warmGrey, fontSize: 13, textAlign: 'center', marginTop: 22, fontFamily: font.sans },
+  hintCode: { color: archive.color.ink, fontWeight: '700', letterSpacing: 2 },
 });

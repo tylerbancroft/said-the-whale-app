@@ -1,12 +1,23 @@
-import { View, Text, StyleSheet, Pressable, ScrollView } from 'react-native';
+import { useState } from 'react';
+import { View, Text, StyleSheet, Pressable, ScrollView, ImageBackground, useWindowDimensions } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { LinearGradient } from 'expo-linear-gradient';
 
 import { AlbumArt } from '@/components/archive/AlbumArt';
 import { PlayAlbumButton } from '@/components/archive/PlayControl';
+import { SaveeeGallery, MediaLightbox } from '@/components/era/SaveeeGallery';
 import { EraGallery } from '@/components/era/EraGallery';
 import { EraVideos } from '@/components/era/EraVideoCard';
-import { findAlbum, bundledCatalog, trackHasAudio, firstPlayableIndex } from '@/data/catalog';
+import {
+  findAlbum,
+  bundledCatalog,
+  trackHasAudio,
+  firstPlayableIndex,
+  heroImageOf,
+  worldTilesOf,
+  type WorldTile,
+} from '@/data/catalog';
 import { useCatalog } from '@/context/CatalogContext';
 import { useArchivePlayer, lengthForTrack } from '@/context/ArchivePlayerContext';
 import { archive, font } from '@/theme/archive';
@@ -15,13 +26,15 @@ export async function generateStaticParams(): Promise<{ id: string }[]> {
   return bundledCatalog.albums.map((a) => ({ id: a.id }));
 }
 
-/** Cream museum card — matches design/stw-redesign album detail. */
+/** Album world: era photo when the overlay has one, else the cream museum card. */
 export default function AlbumDetail() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const { height } = useWindowDimensions();
   const { catalog } = useCatalog();
   const player = useArchivePlayer();
+  const [open, setOpen] = useState<WorldTile | null>(null);
 
   const album = findAlbum(catalog, String(id));
   if (!album) {
@@ -37,8 +50,14 @@ export default function AlbumDetail() {
   const isCurrent = player.album?.id === album.id;
   const albumTracks = album.tracks.filter((t) => !t.extra);
   const extras = album.tracks.filter((t) => t.extra);
-  const galleryPhotos = album.gallery.filter((g) => g.kind === 'photo');
   const canPlayAlbum = firstPlayableIndex(album) >= 0;
+  const hero = heroImageOf(album);
+  const tiles = worldTilesOf(album);
+  const photoWorld = Boolean(hero);
+  const heroH = Math.max(520, Math.min(height * 0.78, 680));
+  const ink = photoWorld ? archive.color.photoText : archive.color.ink;
+  const meta = photoWorld ? archive.color.photoTextSoft : archive.color.warmGrey;
+  const shadow = photoWorld ? archive.photoShadow : undefined;
 
   const openPlayer = (index: number) => {
     if (!trackHasAudio(album.tracks[index])) return;
@@ -46,34 +65,41 @@ export default function AlbumDetail() {
     router.push('/player');
   };
 
-  return (
-    <View style={styles.root}>
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 40 }}>
-        <View style={[styles.topBar, { paddingTop: Math.max(insets.top, 14) }]}>
-          <Pressable onPress={() => router.back()} hitSlop={8}>
-            <Text style={styles.back}>← Archive</Text>
-          </Pressable>
-          <Text style={styles.recNo}>record no. {recNo}</Text>
+  const trackList = (
+    <>
+      <View style={styles.listWrap}>
+        <Text style={[styles.listEyebrow, photoWorld && { color: archive.color.photoTextSoft }]}>Track List</Text>
+        <View style={styles.list}>
+          {albumTracks.map((tr) => {
+            const i = album.tracks.indexOf(tr);
+            const current = isCurrent && player.trackIndex === i;
+            const locked = !trackHasAudio(tr);
+            return (
+              <Pressable
+                key={tr.id}
+                onPress={() => openPlayer(i)}
+                disabled={locked}
+                style={({ pressed }) => [
+                  styles.row,
+                  current && { backgroundColor: archive.color.rowActive },
+                  pressed && !current && !locked && { backgroundColor: archive.color.cream },
+                  locked && { opacity: 0.55 },
+                ]}
+              >
+                <Text style={[styles.num, { color: current ? archive.color.red : archive.color.warmGrey }]}>
+                  {albumTracks.indexOf(tr) + 1}
+                </Text>
+                <Text style={[styles.trackTitle, { fontWeight: current ? '600' : '400' }]}>{tr.title}</Text>
+                <Text style={styles.len}>{locked ? '—' : lengthForTrack(tr, i)}</Text>
+              </Pressable>
+            );
+          })}
         </View>
-
-        <View style={styles.card}>
-          <AlbumArt album={album} size={210} radius={0} />
-          <Text style={styles.title}>{album.title}</Text>
-          <Text style={styles.meta}>{album.year} · {albumTracks.length} tracks</Text>
-          <View style={styles.rule} />
-          {album.desc ? <Text style={styles.desc}>{album.desc}</Text> : null}
-          {canPlayAlbum ? (
-            <PlayAlbumButton onPress={() => openPlayer(firstPlayableIndex(album))} />
-          ) : null}
-        </View>
-
-        {galleryPhotos.length ? <EraGallery items={galleryPhotos} /> : null}
-        {album.videos?.length ? <EraVideos videos={album.videos} /> : null}
-
+      </View>
+      {extras.length ? (
         <View style={styles.listWrap}>
-          <Text style={styles.listEyebrow}>Track List</Text>
           <View style={styles.list}>
-            {albumTracks.map((tr) => {
+            {extras.map((tr) => {
               const i = album.tracks.indexOf(tr);
               const current = isCurrent && player.trackIndex === i;
               const locked = !trackHasAudio(tr);
@@ -89,52 +115,79 @@ export default function AlbumDetail() {
                     locked && { opacity: 0.55 },
                   ]}
                 >
-                  <Text style={[styles.num, { color: current ? archive.color.red : archive.color.warmGrey }]}>
-                    {albumTracks.indexOf(tr) + 1}
-                  </Text>
-                  <Text style={[styles.trackTitle, { fontWeight: current ? '600' : '400' }]}>{tr.title}</Text>
+                  <Text style={styles.num}>+</Text>
+                  <Text style={styles.trackTitle}>{tr.title}</Text>
                   <Text style={styles.len}>{locked ? '—' : lengthForTrack(tr, i)}</Text>
                 </Pressable>
               );
             })}
           </View>
         </View>
+      ) : null}
+    </>
+  );
 
-        {extras.length ? (
-          <View style={styles.listWrap}>
-            <View style={styles.list}>
-              {              extras.map((tr) => {
-                const i = album.tracks.indexOf(tr);
-                const current = isCurrent && player.trackIndex === i;
-                const locked = !trackHasAudio(tr);
-                return (
-                  <Pressable
-                    key={tr.id}
-                    onPress={() => openPlayer(i)}
-                    disabled={locked}
-                    style={({ pressed }) => [
-                      styles.row,
-                      current && { backgroundColor: archive.color.rowActive },
-                      pressed && !current && !locked && { backgroundColor: archive.color.cream },
-                      locked && { opacity: 0.55 },
-                    ]}
-                  >
-                    <Text style={styles.num}>+</Text>
-                    <Text style={styles.trackTitle}>{tr.title}</Text>
-                    <Text style={styles.len}>{locked ? '—' : lengthForTrack(tr, i)}</Text>
-                  </Pressable>
-                );
-              })}
-            </View>
-          </View>
-        ) : null}
+  const identity = (
+    <View style={[styles.card, photoWorld && styles.cardOnPhoto]}>
+      <AlbumArt album={album} size={210} radius={0} />
+      <Text style={[styles.title, { color: ink }, shadow]}>{album.title}</Text>
+      <Text style={[styles.meta, { color: meta }, shadow]}>{album.year} · {albumTracks.length} tracks</Text>
+      <View style={styles.rule} />
+      {album.desc && !photoWorld ? <Text style={styles.desc}>{album.desc}</Text> : null}
+      {canPlayAlbum ? (
+        <PlayAlbumButton onPress={() => openPlayer(firstPlayableIndex(album))} />
+      ) : null}
+    </View>
+  );
+
+  return (
+    <View style={[styles.root, photoWorld && styles.rootPhoto]}>
+      {photoWorld && hero ? (
+        <ImageBackground source={hero} style={StyleSheet.absoluteFill} resizeMode="cover" />
+      ) : null}
+      {photoWorld ? (
+        <LinearGradient
+          colors={archive.scrim as unknown as [string, string, ...string[]]}
+          locations={archive.scrimLocations as unknown as [number, number, ...number[]]}
+          style={StyleSheet.absoluteFill}
+        />
+      ) : null}
+
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 40 }}>
+        <View style={[styles.topBar, { paddingTop: Math.max(insets.top, 14) }, photoWorld && styles.topBarPhoto]}>
+          <Pressable onPress={() => router.back()} hitSlop={8}>
+            <Text style={[styles.back, photoWorld && styles.backPhoto, shadow]}>← Archive</Text>
+          </Pressable>
+          <Text style={[styles.recNo, photoWorld && { color: archive.color.photoTextSoft }, shadow]}>record no. {recNo}</Text>
+        </View>
+
+        {photoWorld ? <View style={{ minHeight: heroH - 80 }}>{identity}</View> : identity}
+
+        {tiles.length ? (
+          <SaveeeGallery
+            tiles={tiles}
+            onOpen={(tile) => {
+              try { if (player.playing) player.toggle(); } catch {}
+              setOpen(tile);
+            }}
+          />
+        ) : (
+          <>
+            {album.gallery.filter((g) => g.kind === 'photo').length ? <EraGallery items={album.gallery.filter((g) => g.kind === 'photo')} /> : null}
+            {album.videos?.length ? <EraVideos videos={album.videos} /> : null}
+          </>
+        )}
+
+        {trackList}
       </ScrollView>
+      {open ? <MediaLightbox tile={open} onClose={() => setOpen(null)} /> : null}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: archive.color.cream },
+  root: { flex: 1, backgroundColor: archive.color.cream, overflow: 'hidden' },
+  rootPhoto: { backgroundColor: '#1a1410' },
   center: { alignItems: 'center', justifyContent: 'center', gap: 12 },
   missing: { fontFamily: font.sans, color: archive.color.body },
 
@@ -147,6 +200,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
   },
+  topBarPhoto: { borderBottomColor: 'transparent' },
   back: {
     fontFamily: font.sans,
     fontSize: 12,
@@ -154,9 +208,11 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
     color: archive.color.deepBlue,
   },
+  backPhoto: { color: archive.color.photoText },
   recNo: { fontFamily: font.script, fontSize: 13, color: archive.color.warmGrey },
 
   card: { paddingHorizontal: 28, paddingTop: 28, paddingBottom: 20, alignItems: 'center' },
+  cardOnPhoto: { paddingTop: 18 },
   title: {
     fontFamily: font.sans,
     fontSize: 22,

@@ -40,14 +40,22 @@ export type CatalogTrack = {
 
 export type EraGalleryItem = {
   id: string;
-  kind: 'photo' | 'poster' | 'scan' | 'cover' | 'illustration';
+  kind: 'photo' | 'poster' | 'scan' | 'cover' | 'illustration' | 'video';
   source?: number;
   uri?: string;
+  /** Hosted MP4 when `uri` is a still (or when kind is video). */
+  videoUri?: string;
+  youtubeId?: string;
+  posterUri?: string;
+  posterSource?: number;
   caption?: string;
   credit?: string;
   featured?: boolean;
   /** Landscape / film frame — full width, not cropped to a portrait tile. */
   wide?: boolean;
+  /** Remote catalog flag: this gallery row is a video even if uri is a still. */
+  video?: boolean;
+  name?: string;
 };
 
 export type EraVideo = {
@@ -88,6 +96,8 @@ export type CatalogAlbum = {
   era: EraWorld;
   coverSource?: number;
   coverUri?: string;
+  /** Full-bleed era photo behind the album world. Remote catalog.json. */
+  heroUri?: string;
   artMode?: 'cover' | 'volume2' | 'wordmark';
   wordmark?: string;
   tracks: CatalogTrack[];
@@ -870,6 +880,134 @@ export function artInk(album: CatalogAlbum) {
   };
 }
 
+function isVideoUrl(u?: string): boolean {
+  return Boolean(u && /\.(mp4|m4v|webm|mov)(\?|$)/i.test(u));
+}
+
+function isImageUrl(u?: string): boolean {
+  return Boolean(u && /\.(jpe?g|png|webp|gif|avif)(\?|$)/i.test(u));
+}
+
+function isVideoItem(item: EraGalleryItem): boolean {
+  return item.kind === 'video' || item.video === true || isVideoUrl(item.uri) || isVideoUrl(item.videoUri) || Boolean(item.youtubeId);
+}
+
+/** Full-bleed era still for the album world. Only https overlay — bundled stills stay cream. */
+export function heroImageOf(album: CatalogAlbum): { uri: string } | undefined {
+  if (album.heroUri) return { uri: album.heroUri };
+  const still = album.gallery.find((g) => !isVideoItem(g) && g.uri);
+  if (still?.uri) return { uri: still.uri };
+  return undefined;
+}
+
+export function hasRemoteVisuals(album: CatalogAlbum): boolean {
+  return Boolean(album.heroUri || album.gallery.some((g) => g.uri));
+}
+
+export type WorldTile = {
+  id: string;
+  kind: 'photo' | 'poster' | 'video';
+  still?: { uri: string } | number;
+  videoUri?: string;
+  youtubeId?: string;
+  credit?: string;
+  wide?: boolean;
+};
+
+function stillOf(item: EraGalleryItem): WorldTile['still'] {
+  if (item.posterSource != null) return item.posterSource;
+  if (item.posterUri) return { uri: item.posterUri };
+  if (item.source != null && !isVideoUrl(item.uri)) return item.source;
+  if (item.uri && isImageUrl(item.uri)) return { uri: item.uri };
+  if (item.youtubeId) return { uri: `https://i.ytimg.com/vi/${item.youtubeId}/hqdefault.jpg` };
+  return undefined;
+}
+
+function tileFromGallery(item: EraGalleryItem): WorldTile | null {
+  const video = isVideoItem(item);
+  const still = stillOf(item);
+  const videoUri = item.videoUri || (isVideoUrl(item.uri) ? item.uri : undefined);
+  const youtubeId = item.youtubeId;
+  if (video) {
+    if (!still && !videoUri && !youtubeId) return null;
+    return {
+      id: item.id,
+      kind: 'video',
+      still,
+      videoUri,
+      youtubeId,
+      credit: item.credit,
+      wide: item.wide,
+    };
+  }
+  if (!still) return null;
+  return {
+    id: item.id,
+    kind: item.kind === 'poster' ? 'poster' : 'photo',
+    still,
+    credit: item.credit,
+    wide: item.wide,
+  };
+}
+
+function tileFromVideo(v: EraVideo, credit?: string): WorldTile | null {
+  const still =
+    v.posterSource != null
+      ? v.posterSource
+      : v.youtubeId
+        ? { uri: `https://i.ytimg.com/vi/${v.youtubeId}/hqdefault.jpg` }
+        : undefined;
+  const playable = Boolean(v.youtubeId || v.uri);
+  if (playable) {
+    return {
+      id: v.id,
+      kind: 'video',
+      still,
+      videoUri: v.uri && isVideoUrl(v.uri) ? v.uri : v.uri,
+      youtubeId: v.youtubeId,
+      credit,
+    };
+  }
+  if (still) return { id: v.id, kind: 'photo', still, credit };
+  return null;
+}
+
+function isCascadiaBanned(tile: WorldTile): boolean {
+  const uri = typeof tile.still === 'object' && tile.still && 'uri' in tile.still ? tile.still.uri : '';
+  return tile.id === 'alayeaw-trio' || /IMG_7223/i.test(tile.id) || /IMG_7223/i.test(uri);
+}
+
+/** Saveee grid: remote gallery stills + playable videos. No captions. */
+export function worldTilesOf(album: CatalogAlbum): WorldTile[] {
+  if (!hasRemoteVisuals(album)) return [];
+  const fromGallery = album.gallery.map(tileFromGallery).filter((t): t is WorldTile => Boolean(t));
+  const seen = new Set(fromGallery.map((t) => t.id));
+  const fromVideos = (album.videos ?? [])
+    .map((v) => tileFromVideo(v, album.era?.credit))
+    .filter((t): t is WorldTile => Boolean(t) && !seen.has(t.id));
+  let tiles = [...fromGallery, ...fromVideos];
+  if (album.id === 'cascadia') tiles = tiles.filter((t) => !isCascadiaBanned(t));
+  return tiles;
+}
+
+function mergeGallery(base: EraGalleryItem[], over?: EraGalleryItem[]): EraGalleryItem[] {
+  if (!over?.length) return base;
+  const byId = new Map(base.map((g) => [g.id, g]));
+  return over.map((g) => {
+    const b = byId.get(g.id);
+    if (!b) return { ...g };
+    return {
+      ...b,
+      ...g,
+      source: b.source ?? g.source,
+      posterSource: b.posterSource ?? g.posterSource,
+      uri: g.uri || b.uri,
+      videoUri: g.videoUri || b.videoUri,
+      youtubeId: g.youtubeId || b.youtubeId,
+    };
+  });
+}
+
 /** Overlay remote catalog.json fields onto the bundled era worlds. */
 export function mergeCatalog(remote: Catalog, bundled: Catalog = bundledCatalog): Catalog {
   const byId = new Map(bundled.albums.map((a) => [a.id, a]));
@@ -881,10 +1019,10 @@ export function mergeCatalog(remote: Catalog, bundled: Catalog = bundledCatalog)
       ...over,
       era: { ...base.era, ...(over.era ?? {}) },
       coverSource: base.coverSource,
-      gallery: over.gallery?.length ? over.gallery.map((g, i) => ({ ...base.gallery[i], ...g, source: base.gallery[i]?.source ?? g.source })) : base.gallery,
+      gallery: mergeGallery(base.gallery, over.gallery),
       videos: over.videos ?? base.videos,
       tracks: base.tracks.map((bt) => {
-        const rt = over.tracks.find((t) => t.id === bt.id);
+        const rt = over.tracks?.find((t) => t.id === bt.id);
         if (!rt) return bt;
         return { ...bt, ...rt, source: bt.source ?? rt.source, uri: rt.uri || bt.uri };
       }),

@@ -67,6 +67,23 @@ export function PlayCircle({
   );
 }
 
+export function VideoPlayBadge({ size = 32 }: { size?: number }) {
+  return (
+    <View
+      style={{
+        width: size,
+        height: size,
+        borderRadius: size / 2,
+        backgroundColor: 'rgba(196,97,78,0.92)',
+        alignItems: 'center',
+        justifyContent: 'center',
+      }}
+    >
+      <PlayMark playing={false} size={Math.round(size * 0.34)} color={archive.color.paper} />
+    </View>
+  );
+}
+
 export function PlayAlbumButton({ onPress }: { onPress: () => void }) {
   return (
     <Pressable

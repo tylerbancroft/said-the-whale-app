@@ -3,6 +3,7 @@ import { useRouter } from 'expo-router';
 import { useArchivePlayer } from '@/context/ArchivePlayerContext';
 import { artInk } from '@/data/catalog';
 import { archive, font } from '@/theme/archive';
+import { PlayCircle } from '@/components/archive/PlayControl';
 
 /** Screen 4 — persistent mini-player bar above the bottom nav. */
 export function ArchiveMiniPlayer() {
@@ -32,9 +33,7 @@ export function ArchiveMiniPlayer() {
             <Text style={styles.album} numberOfLines={1}>{album.title}</Text>
           </View>
         </Pressable>
-        <Pressable onPress={p.toggle} style={styles.playBtn} hitSlop={8}>
-          <Text style={styles.playGlyph}>{p.playing ? '❚❚' : '▶'}</Text>
-        </Pressable>
+        <PlayCircle playing={p.playing} onPress={p.toggle} size={50} />
       </View>
     </View>
   );
@@ -42,15 +41,13 @@ export function ArchiveMiniPlayer() {
 
 const styles = StyleSheet.create({
   wrap: { borderTopWidth: 1, borderTopColor: archive.color.line, backgroundColor: archive.color.paper },
-  progress: { position: 'absolute', top: 0, left: 0, height: 2, backgroundColor: archive.color.red, zIndex: 2 },
-  row: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 14, paddingVertical: 10 },
+  progress: { position: 'absolute', top: 0, left: 0, height: 3, backgroundColor: archive.color.red, zIndex: 2 },
+  row: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingLeft: 14, paddingRight: 12, paddingVertical: 10 },
   left: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 12, minWidth: 0 },
-  art: { width: 38, height: 38, alignItems: 'center', justifyContent: 'center' },
-  artImg: { width: 38, height: 38 },
-  artRing: { width: 20, height: 20, borderRadius: 10, borderWidth: 1 },
+  art: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
+  artImg: { width: 44, height: 44 },
+  artRing: { width: 22, height: 22, borderRadius: 11, borderWidth: 1 },
   meta: { flex: 1, minWidth: 0 },
-  title: { fontFamily: font.sans, fontSize: 13, fontWeight: '600', letterSpacing: 0.3, color: archive.color.ink },
-  album: { fontFamily: font.sans, fontSize: 11, letterSpacing: 0.5, color: archive.color.warmGrey, marginTop: 1 },
-  playBtn: { width: 40, height: 40, borderRadius: 20, borderWidth: 1, borderColor: archive.color.ink, alignItems: 'center', justifyContent: 'center' },
-  playGlyph: { fontSize: 12, color: archive.color.ink },
+  title: { fontFamily: font.sans, fontSize: 14, fontWeight: '600', letterSpacing: 0.3, color: archive.color.ink },
+  album: { fontFamily: font.sans, fontSize: 11, letterSpacing: 0.5, color: archive.color.warmGrey, marginTop: 2 },
 });

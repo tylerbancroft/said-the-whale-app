@@ -3,6 +3,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { AlbumArt } from '@/components/archive/AlbumArt';
+import { PlayAlbumButton } from '@/components/archive/PlayControl';
 import { EraGallery } from '@/components/era/EraGallery';
 import { EraVideos } from '@/components/era/EraVideoCard';
 import { findAlbum, bundledCatalog, trackHasAudio, firstPlayableIndex } from '@/data/catalog';
@@ -62,12 +63,7 @@ export default function AlbumDetail() {
           <View style={styles.rule} />
           {album.desc ? <Text style={styles.desc}>{album.desc}</Text> : null}
           {canPlayAlbum ? (
-            <Pressable
-              onPress={() => openPlayer(firstPlayableIndex(album))}
-              style={({ pressed }) => [styles.playBtn, pressed && { backgroundColor: archive.color.redDark }]}
-            >
-              <Text style={styles.playBtnText}>▶  Play Album</Text>
-            </Pressable>
+            <PlayAlbumButton onPress={() => openPlayer(firstPlayableIndex(album))} />
           ) : null}
         </View>
 
@@ -187,22 +183,6 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     maxWidth: 300,
   },
-  playBtn: {
-    marginTop: 20,
-    backgroundColor: archive.color.red,
-    paddingVertical: 13,
-    paddingHorizontal: 34,
-    borderRadius: 999,
-  },
-  playBtnText: {
-    fontFamily: font.sans,
-    fontSize: 12,
-    fontWeight: '600',
-    letterSpacing: 3,
-    textTransform: 'uppercase',
-    color: archive.color.paper,
-  },
-
   listWrap: { paddingHorizontal: 24, paddingBottom: 20 },
   listEyebrow: {
     fontFamily: font.sans,
@@ -220,7 +200,8 @@ const styles = StyleSheet.create({
     gap: 14,
     borderBottomWidth: 1,
     borderBottomColor: archive.color.rowBorder,
-    paddingVertical: 13,
+    minHeight: 48,
+    paddingVertical: 15,
     paddingHorizontal: 16,
   },
   num: { width: 22, fontSize: 11, letterSpacing: 1, textAlign: 'right', fontFamily: font.sans },

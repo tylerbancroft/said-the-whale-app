@@ -889,7 +889,7 @@ function isImageUrl(u?: string): boolean {
 }
 
 function isVideoItem(item: EraGalleryItem): boolean {
-  return item.kind === 'video' || item.video === true || isVideoUrl(item.uri) || isVideoUrl(item.videoUri) || Boolean(item.youtubeId);
+  return item.kind === 'video' || item.video === true || isVideoUrl(item.uri) || isVideoUrl(item.videoUri);
 }
 
 /** Full-bleed era still for the album world. Only https overlay — bundled stills stay cream. */
@@ -908,8 +908,8 @@ export type WorldTile = {
   id: string;
   kind: 'photo' | 'poster' | 'video';
   still?: { uri: string } | number;
+  /** Hosted https mp4. Never YouTube. */
   videoUri?: string;
-  youtubeId?: string;
   credit?: string;
   wide?: boolean;
 };
@@ -919,7 +919,6 @@ function stillOf(item: EraGalleryItem): WorldTile['still'] {
   if (item.posterUri) return { uri: item.posterUri };
   if (item.source != null && !isVideoUrl(item.uri)) return item.source;
   if (item.uri && isImageUrl(item.uri)) return { uri: item.uri };
-  if (item.youtubeId) return { uri: `https://i.ytimg.com/vi/${item.youtubeId}/hqdefault.jpg` };
   return undefined;
 }
 
@@ -927,15 +926,13 @@ function tileFromGallery(item: EraGalleryItem): WorldTile | null {
   const video = isVideoItem(item);
   const still = stillOf(item);
   const videoUri = item.videoUri || (isVideoUrl(item.uri) ? item.uri : undefined);
-  const youtubeId = item.youtubeId;
   if (video) {
-    if (!still && !videoUri && !youtubeId) return null;
+    if (!still && !videoUri) return null;
     return {
       id: item.id,
       kind: 'video',
       still,
       videoUri,
-      youtubeId,
       credit: item.credit,
       wide: item.wide,
     };
@@ -950,42 +947,15 @@ function tileFromGallery(item: EraGalleryItem): WorldTile | null {
   };
 }
 
-function tileFromVideo(v: EraVideo, credit?: string): WorldTile | null {
-  const still =
-    v.posterSource != null
-      ? v.posterSource
-      : v.youtubeId
-        ? { uri: `https://i.ytimg.com/vi/${v.youtubeId}/hqdefault.jpg` }
-        : undefined;
-  const playable = Boolean(v.youtubeId || v.uri);
-  if (playable) {
-    return {
-      id: v.id,
-      kind: 'video',
-      still,
-      videoUri: v.uri && isVideoUrl(v.uri) ? v.uri : v.uri,
-      youtubeId: v.youtubeId,
-      credit,
-    };
-  }
-  if (still) return { id: v.id, kind: 'photo', still, credit };
-  return null;
-}
-
 function isCascadiaBanned(tile: WorldTile): boolean {
   const uri = typeof tile.still === 'object' && tile.still && 'uri' in tile.still ? tile.still.uri : '';
   return tile.id === 'alayeaw-trio' || /IMG_7223/i.test(tile.id) || /IMG_7223/i.test(uri);
 }
 
-/** Saveee grid: remote gallery stills + playable videos. No captions. */
+/** Saveee grid from overlay gallery only. Never bundled YouTube `album.videos`. */
 export function worldTilesOf(album: CatalogAlbum): WorldTile[] {
   if (!hasRemoteVisuals(album)) return [];
-  const fromGallery = album.gallery.map(tileFromGallery).filter((t): t is WorldTile => Boolean(t));
-  const seen = new Set(fromGallery.map((t) => t.id));
-  const fromVideos = (album.videos ?? [])
-    .map((v) => tileFromVideo(v, album.era?.credit))
-    .filter((t): t is WorldTile => Boolean(t) && !seen.has(t.id));
-  let tiles = [...fromGallery, ...fromVideos];
+  let tiles = album.gallery.map(tileFromGallery).filter((t): t is WorldTile => Boolean(t));
   if (album.id === 'cascadia') tiles = tiles.filter((t) => !isCascadiaBanned(t));
   return tiles;
 }
@@ -1003,7 +973,8 @@ function mergeGallery(base: EraGalleryItem[], over?: EraGalleryItem[]): EraGalle
       posterSource: b.posterSource ?? g.posterSource,
       uri: g.uri || b.uri,
       videoUri: g.videoUri || b.videoUri,
-      youtubeId: g.youtubeId || b.youtubeId,
+      // Overlay may omit youtubeId to wipe bundled YouTube — do not `||` the base id back in.
+      youtubeId: g.youtubeId,
     };
   });
 }
@@ -1020,7 +991,13 @@ export function mergeCatalog(remote: Catalog, bundled: Catalog = bundledCatalog)
       era: { ...base.era, ...(over.era ?? {}) },
       coverSource: base.coverSource,
       gallery: mergeGallery(base.gallery, over.gallery),
-      videos: over.videos ?? base.videos,
+      videos: over.videos
+        ? over.videos.map((v) => {
+            const b = (base.videos ?? []).find((x) => x.id === v.id);
+            if (!b) return { ...v };
+            return { ...b, ...v, uri: v.uri || b.uri, youtubeId: v.youtubeId };
+          })
+        : base.videos,
       tracks: base.tracks.map((bt) => {
         const rt = over.tracks?.find((t) => t.id === bt.id);
         if (!rt) return bt;

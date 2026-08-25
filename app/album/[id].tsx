@@ -8,7 +8,6 @@ import { AlbumArt } from '@/components/archive/AlbumArt';
 import { PlayAlbumButton } from '@/components/archive/PlayControl';
 import { SaveeeGallery, MediaLightbox } from '@/components/era/SaveeeGallery';
 import { EraGallery } from '@/components/era/EraGallery';
-import { EraVideos } from '@/components/era/EraVideoCard';
 import {
   findAlbum,
   bundledCatalog,
@@ -163,24 +162,25 @@ export default function AlbumDetail() {
 
         {photoWorld ? <View style={{ minHeight: heroH - 80 }}>{identity}</View> : identity}
 
-        {tiles.length ? (
-          <SaveeeGallery
-            tiles={tiles}
-            onOpen={(tile) => {
-              try { if (player.playing) player.toggle(); } catch {}
-              setOpen(tile);
-            }}
-          />
-        ) : (
-          <>
-            {album.gallery.filter((g) => g.kind === 'photo').length ? <EraGallery items={album.gallery.filter((g) => g.kind === 'photo')} /> : null}
-            {album.videos?.length ? <EraVideos videos={album.videos} /> : null}
-          </>
-        )}
-
         {trackList}
+
+        {tiles.length ? (
+          <SaveeeGallery tiles={tiles} onOpen={setOpen} />
+        ) : album.gallery.filter((g) => g.kind === 'photo').length ? (
+          <EraGallery items={album.gallery.filter((g) => g.kind === 'photo')} />
+        ) : null}
       </ScrollView>
-      {open ? <MediaLightbox tile={open} onClose={() => setOpen(null)} /> : null}
+      {open ? (
+        <MediaLightbox
+          tile={open}
+          onClose={() => setOpen(null)}
+          onVideoStart={() => {
+            try {
+              player.pause();
+            } catch {}
+          }}
+        />
+      ) : null}
     </View>
   );
 }

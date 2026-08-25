@@ -50,6 +50,7 @@ type ArchivePlayerValue = {
   playAlbum: (album: CatalogAlbum) => void;
   playTrack: (album: CatalogAlbum, index: number) => void;
   toggle: () => void;
+  pause: () => void;
   seekFraction: (f: number) => void;
   next: () => void;
   prev: () => void;
@@ -145,6 +146,13 @@ export function ArchivePlayerProvider({ children }: { children: ReactNode }) {
     playTrack(al, pi);
   }, [elapsed, playTrack]);
 
+  const pause = useCallback(() => {
+    try {
+      playerRef.current?.pause();
+      setPlaying(false);
+    } catch {}
+  }, []);
+
   const toggle = useCallback(() => {
     const player = playerRef.current;
     const al = albumRef.current;
@@ -219,6 +227,7 @@ export function ArchivePlayerProvider({ children }: { children: ReactNode }) {
     playAlbum,
     playTrack,
     toggle,
+    pause,
     seekFraction,
     next,
     prev,

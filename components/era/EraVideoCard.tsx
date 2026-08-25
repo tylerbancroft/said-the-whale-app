@@ -1,38 +1,19 @@
-import { Image, Linking, Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
-import * as WebBrowser from 'expo-web-browser';
+import { Image, Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { EraVideo } from '@/data/catalog';
 import { archive, font } from '@/theme/archive';
 
-export function EraVideoCard({ video }: { video: EraVideo }) {
-  const playable = Boolean(video.youtubeId || video.uri);
-  const thumb = video.youtubeId
-    ? { uri: `https://i.ytimg.com/vi/${video.youtubeId}/hqdefault.jpg` }
-    : video.posterSource
-      ? (video.posterSource as number)
-      : undefined;
+function isHostedMp4(uri?: string): boolean {
+  return Boolean(uri && /\.(mp4|m4v|webm|mov)(\?|$)/i.test(uri));
+}
 
-  const open = async () => {
-    if (video.youtubeId) {
-      const url = `https://www.youtube.com/watch?v=${video.youtubeId}`;
-      try {
-        await WebBrowser.openBrowserAsync(url);
-      } catch {
-        Linking.openURL(url);
-      }
-      return;
-    }
-    if (video.uri) {
-      try {
-        await WebBrowser.openBrowserAsync(video.uri);
-      } catch {
-        Linking.openURL(video.uri);
-      }
-    }
-  };
+/** Cream-fallback video tiles. Hosted mp4 only — never YouTube. */
+export function EraVideoCard({ video }: { video: EraVideo }) {
+  const playable = isHostedMp4(video.uri);
+  const thumb = video.posterSource ? (video.posterSource as number) : undefined;
 
   return (
     <Pressable
-      onPress={open}
+      onPress={() => {}}
       disabled={!playable}
       style={({ pressed }) => [styles.card, pressed && playable && { opacity: 0.92 }]}
     >
@@ -50,16 +31,17 @@ export function EraVideoCard({ video }: { video: EraVideo }) {
 
 export function EraVideos({ videos }: { videos?: EraVideo[] }) {
   const { width } = useWindowDimensions();
-  if (!videos?.length) return null;
+  const hosted = (videos ?? []).filter((v) => isHostedMp4(v.uri) || v.posterSource);
+  if (!hosted.length) return null;
   const pageW = Math.min(width, 390);
-  const twoCol = videos.length > 1;
+  const twoCol = hosted.length > 1;
   const gap = 10;
   const cellW = twoCol ? (pageW - 48 - gap) / 2 : pageW - 48;
 
   return (
     <View style={[styles.wrap, { width: pageW }]}>
       <View style={[styles.grid, { gap }]}>
-        {videos.map((v) => (
+        {hosted.map((v) => (
           <View key={v.id} style={{ width: cellW }}>
             <EraVideoCard video={v} />
           </View>

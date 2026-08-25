@@ -1,7 +1,6 @@
-import { createElement, useMemo, useRef, useState } from 'react';
+import { createElement, useMemo, useRef } from 'react';
 import {
   Image,
-  Linking,
   PanResponder,
   Platform,
   Pressable,
@@ -10,28 +9,27 @@ import {
   View,
   useWindowDimensions,
 } from 'react-native';
-import * as WebBrowser from 'expo-web-browser';
 import { WorldTile } from '@/data/catalog';
 import { archive, font } from '@/theme/archive';
 import { VideoPlayBadge } from '@/components/archive/PlayControl';
 
-const GUTTER = 4;
+/** Saveee masonry: thin gutters, quiet radius, staggered column packing. Not the Swiss/crosshair variant. */
+const GUTTER = 8;
+const RADIUS = 12;
 
 function seedRatio(tile: WorldTile): number {
-  if (tile.kind === 'video') return 9 / 16;
-  if (tile.wide) return 2 / 3;
   let h = 0;
   for (let i = 0; i < tile.id.length; i += 1) h = (h * 33 + tile.id.charCodeAt(i)) >>> 0;
-  return [0.78, 0.92, 1.05, 1.22, 1.38][h % 5];
+  return [0.72, 0.86, 0.98, 1.16, 1.32, 1.48][h % 6];
 }
 
-function splitColumns(tiles: WorldTile[], ratios: Record<string, number>, colW: number): [WorldTile[], WorldTile[]] {
+function splitColumns(tiles: WorldTile[], colW: number): [WorldTile[], WorldTile[]] {
   const left: WorldTile[] = [];
   const right: WorldTile[] = [];
   let lH = 0;
   let rH = 0;
   for (const tile of tiles) {
-    const h = colW * (ratios[tile.id] ?? seedRatio(tile)) + GUTTER;
+    const h = colW * seedRatio(tile) + GUTTER;
     if (lH <= rH) {
       left.push(tile);
       lH += h;
@@ -43,11 +41,36 @@ function splitColumns(tiles: WorldTile[], ratios: Record<string, number>, colW: 
   return [left, right];
 }
 
-function playable(tile: WorldTile): boolean {
-  return Boolean(tile.youtubeId || tile.videoUri);
+function posterUri(tile: WorldTile): string | undefined {
+  return typeof tile.still === 'object' && tile.still && 'uri' in tile.still ? tile.still.uri : undefined;
 }
 
-/** Two-column staggered stills — Saveee-quiet. No captions on tiles. */
+function InAppVideo({
+  uri,
+  poster,
+  onPlay,
+}: {
+  uri: string;
+  poster?: string;
+  onPlay?: () => void;
+}) {
+  if (Platform.OS !== 'web') {
+    return poster ? (
+      <Image source={{ uri: poster }} style={styles.lightImg} resizeMode="contain" />
+    ) : null;
+  }
+  return createElement('video', {
+    src: uri,
+    poster,
+    controls: true,
+    autoPlay: true,
+    playsInline: true,
+    onPlay,
+    style: { width: '100%', height: '100%', objectFit: 'contain', background: '#000' },
+  });
+}
+
+/** Two-column staggered stills. Cover-crop in the grid; no captions. */
 export function SaveeeGallery({
   tiles,
   onOpen,
@@ -58,38 +81,25 @@ export function SaveeeGallery({
   const { width } = useWindowDimensions();
   const pageW = Math.min(width, 390);
   const colW = (pageW - GUTTER * 3) / 2;
-  const [ratios, setRatios] = useState<Record<string, number>>({});
-  const [left, right] = useMemo(() => splitColumns(tiles, ratios, colW), [tiles, ratios, colW]);
+  const [left, right] = useMemo(() => splitColumns(tiles, colW), [tiles, colW]);
 
   if (!tiles.length) return null;
 
   const renderCol = (col: WorldTile[]) =>
     col.map((tile) => {
-      const ratio = ratios[tile.id] ?? seedRatio(tile);
+      const ratio = seedRatio(tile);
       const showPlay = tile.kind === 'video';
       return (
         <Pressable key={tile.id} onPress={() => onOpen(tile)} style={{ marginBottom: GUTTER }}>
           <View style={[styles.tile, { width: colW, height: colW * ratio }]}>
             {tile.still ? (
-              <Image
-                source={tile.still}
-                style={StyleSheet.absoluteFill}
-                resizeMode="cover"
-                onLoad={(e) => {
-                  const src = e.nativeEvent.source as { width?: number; height?: number } | undefined;
-                  if (src?.width && src?.height) {
-                    setRatios((prev) =>
-                      prev[tile.id] ? prev : { ...prev, [tile.id]: src.height / src.width },
-                    );
-                  }
-                }}
-              />
+              <Image source={tile.still} style={StyleSheet.absoluteFill} resizeMode="cover" />
             ) : (
               <View style={[StyleSheet.absoluteFill, styles.blank]} />
             )}
             {showPlay ? (
               <View style={styles.playWrap} pointerEvents="none">
-                <VideoPlayBadge size={30} />
+                <VideoPlayBadge size={28} />
               </View>
             ) : null}
           </View>
@@ -107,8 +117,16 @@ export function SaveeeGallery({
   );
 }
 
-export function MediaLightbox({ tile, onClose }: { tile: WorldTile; onClose: () => void }) {
-  const canPlay = tile.kind === 'video' && playable(tile);
+export function MediaLightbox({
+  tile,
+  onClose,
+  onVideoStart,
+}: {
+  tile: WorldTile;
+  onClose: () => void;
+  onVideoStart?: () => void;
+}) {
+  const canPlay = tile.kind === 'video' && Boolean(tile.videoUri);
   const pan = useRef(
     PanResponder.create({
       onMoveShouldSetPanResponder: (_, g) => g.dy > 10 && Math.abs(g.dy) > Math.abs(g.dx),
@@ -118,50 +136,14 @@ export function MediaLightbox({ tile, onClose }: { tile: WorldTile; onClose: () 
     }),
   ).current;
 
-  const openYoutube = async () => {
-    if (!tile.youtubeId) return;
-    const url = `https://www.youtube.com/watch?v=${tile.youtubeId}`;
-    try {
-      await WebBrowser.openBrowserAsync(url);
-    } catch {
-      Linking.openURL(url);
-    }
-  };
-
   return (
     <View style={styles.light} {...pan.panHandlers}>
       <Pressable onPress={onClose} style={styles.lightBack} hitSlop={10}>
         <Text style={styles.lightBackTxt}>←</Text>
       </Pressable>
       <View style={styles.lightStage}>
-        {canPlay && tile.youtubeId && Platform.OS === 'web' ? (
-          createElement('iframe', {
-            src: `https://www.youtube.com/embed/${tile.youtubeId}?autoplay=1`,
-            allow: 'autoplay; fullscreen',
-            style: { width: '100%', height: '100%', border: 0, background: '#000' },
-            title: 'Video',
-          })
-        ) : canPlay && tile.videoUri && Platform.OS === 'web' ? (
-          createElement('video', {
-            src: tile.videoUri,
-            controls: true,
-            autoPlay: true,
-            playsInline: true,
-            style: { width: '100%', height: '100%', objectFit: 'contain', background: '#000' },
-          })
-        ) : canPlay && tile.youtubeId ? (
-          <Pressable onPress={openYoutube} style={styles.lightStill}>
-            {tile.still ? <Image source={tile.still} style={StyleSheet.absoluteFill} resizeMode="contain" /> : null}
-            <VideoPlayBadge size={56} />
-          </Pressable>
-        ) : canPlay && tile.videoUri ? (
-          <Pressable
-            onPress={() => Linking.openURL(tile.videoUri!)}
-            style={styles.lightStill}
-          >
-            {tile.still ? <Image source={tile.still} style={StyleSheet.absoluteFill} resizeMode="contain" /> : null}
-            <VideoPlayBadge size={56} />
-          </Pressable>
+        {canPlay && tile.videoUri ? (
+          <InAppVideo uri={tile.videoUri} poster={posterUri(tile)} onPlay={onVideoStart} />
         ) : tile.still ? (
           <Image source={tile.still} style={styles.lightImg} resizeMode="contain" />
         ) : null}
@@ -173,8 +155,12 @@ export function MediaLightbox({ tile, onClose }: { tile: WorldTile; onClose: () 
 
 const styles = StyleSheet.create({
   wrap: { alignSelf: 'center', marginTop: 8, marginBottom: 18 },
-  cols: { flexDirection: 'row' },
-  tile: { backgroundColor: '#1a1410', overflow: 'hidden' },
+  cols: { flexDirection: 'row', alignItems: 'flex-start' },
+  tile: {
+    backgroundColor: '#1a1410',
+    overflow: 'hidden',
+    borderRadius: RADIUS,
+  },
   blank: { backgroundColor: '#2a221c' },
   playWrap: { ...StyleSheet.absoluteFillObject, alignItems: 'center', justifyContent: 'center' },
   light: {
@@ -191,7 +177,6 @@ const styles = StyleSheet.create({
   },
   lightStage: { flex: 1, marginTop: 48, marginBottom: 36, marginHorizontal: 8 },
   lightImg: { width: '100%', height: '100%' },
-  lightStill: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   credit: {
     position: 'absolute',
     bottom: 14,
